@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8">
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+'use strict';
+new QWebChannel(qt.webChannelTransport, async channel => {
+  const bridge=channel.objects.audio;
+  let stream, context, node;
+  try {
+    const options=new URLSearchParams(location.search),capture=options.get('capture')!=='0';
+    const audio={echoCancellation:{exact:true},noiseSuppression:{exact:true},autoGainControl:false,channelCount:1};
+    if(capture){
+      stream=await navigator.mediaDevices.getUserMedia({video:false,audio});
+      const wanted=options.get('microphone');
+      if(wanted && wanted!=='Otomatik'){
+        const devices=await navigator.mediaDevices.enumerateDevices();
+        const normalize=s=>s.replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)$/i,'').trim().toLocaleLowerCase();
+        const matches=devices.filter(d=>d.kind==='audioinput' && !['default','communications'].includes(d.deviceId) && normalize(d.label)===normalize(wanted));
+        if(matches.length!==1)throw new Error('SelectedMicrophoneUnavailable');
+        stream.getTracks().forEach(t=>t.stop());
+        stream=await navigator.mediaDevices.getUserMedia({video:false,audio:{...audio,deviceId:{exact:matches[0].deviceId}}});
+      }
+    }
+    const settings=capture?stream.getAudioTracks()[0].getSettings():{echoCancellation:true,noiseSuppression:true};
+    if(settings.echoCancellation!==true)throw new Error('EchoCancellationUnavailable');
+    context=new AudioContext({sampleRate:48000,latencyHint:'interactive'});
+    await context.audioWorklet.addModule('audio_worklet.js');
+    node=new AudioWorkletNode(context,'yumi-audio',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1]});
+    function b64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s);}
+    node.port.onmessage=({data})=>{
+      if(data.kind==='mic')bridge.microphone(b64(new Uint8Array(data.pcm)));
+      else if(data.kind==='pull')bridge.pull(data.epoch);
+      else if(data.kind==='played')bridge.played(data.audible,data.epoch,data.level||0);
+      else if(data.kind==='fault')bridge.failed('PlaybackOverflow');
+    };
+    bridge.command.connect(message=>{
+      const data=JSON.parse(message);
+      if(data.kind==='close'){if(stream)stream.getTracks().forEach(t=>t.stop());node.disconnect();context.close();return;}
+      if(data.kind==='audio'){
+        const decoded=atob(data.pcm),bytes=new Uint8Array(decoded.length);
+        for(let i=0;i<bytes.length;i++)bytes[i]=decoded.charCodeAt(i);
+        data.pcm=bytes.buffer;node.port.postMessage(data,[data.pcm]);
+      }else node.port.postMessage(data);
+    });
+    if(stream)context.createMediaStreamSource(stream).connect(node);node.connect(context.destination);
+    await context.resume();bridge.ready(JSON.stringify({echoCancellation:settings.echoCancellation,noiseSuppression:settings.noiseSuppression,sampleRate:context.sampleRate}));
+  } catch(error) {
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    if(context)context.close();bridge.failed(error.name||'AudioError');
+  }
+});
+</script>

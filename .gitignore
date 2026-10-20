@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+vrm_runtime/node_modules/
+
+# Python runtime & environments
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+*.tmp
+
+# User-specific VRM 3D Avatar Models (Licensing & Personal Use Protection)
+*.vrm
+skins/*.vrm
+skins/*
+!skins/.gitkeep
+work/removed-skins/
+work/sonetto/*.vrm
+
+# AI Models & Large Binaries (Downloaded via setup / scripts)
+models/
+*.onnx
+*.bin
+*.mdl
+*.fst
+
+# Local scratch, cache, work & build artifacts
+work/
+outputs/
+build/
+dist/
+*.egg-info/
+.cache/
+.pytest_cache/
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+.agents/

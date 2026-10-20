@@ -1,0 +1,11 @@
+{
+  "name": "yumi-vrm-runtime",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Local, offline three-vrm runtime for Yumi; no model uploads.",
+  "dependencies": {
+    "@pixiv/three-vrm": "3.5.5",
+    "three": "0.180.0"
+  }
+}

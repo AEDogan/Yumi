@@ -1,0 +1,82 @@
+{
+  "assets": [
+    {
+      "id": "desk",
+      "status": "generated_textured_in_meshy_download_not_received",
+      "target": "GLB",
+      "source": "Meshy 6 Lite, generated in user account",
+      "license": "CC BY 4.0",
+      "pivot": "ground center",
+      "approved_direction": "neutral softly rounded human scale",
+      "runtime_status": "procedural_placeholder",
+      "group": "workstation",
+      "meshy_task": "01a13011-52f9-704a-8e35-412971e483d6",
+      "attribution": "Generated with Meshy (https://www.meshy.ai), CC BY 4.0"
+    },
+    {
+      "id": "chair",
+      "status": "generated_textured_in_meshy_download_not_received",
+      "target": "GLB",
+      "source": "Meshy 6 Lite, generated in user account",
+      "license": "CC BY 4.0",
+      "pivot": "ground center",
+      "approved_direction": "neutral softly rounded human scale",
+      "runtime_status": "procedural_placeholder",
+      "group": "workstation",
+      "meshy_task": "01a13011-52f9-704a-8e35-412971e483d6",
+      "attribution": "Generated with Meshy (https://www.meshy.ai), CC BY 4.0"
+    },
+    {
+      "id": "monitor",
+      "status": "generated_textured_in_meshy_download_not_received",
+      "target": "GLB",
+      "source": "Meshy 6 Lite, generated in user account",
+      "license": "CC BY 4.0",
+      "pivot": "ground center",
+      "approved_direction": "neutral softly rounded human scale",
+      "runtime_status": "procedural_placeholder",
+      "group": "workstation",
+      "meshy_task": "01a13011-52f9-704a-8e35-412971e483d6",
+      "attribution": "Generated with Meshy (https://www.meshy.ai), CC BY 4.0"
+    },
+    {
+      "id": "bed",
+      "status": "generated_textured_in_meshy_download_not_received",
+      "target": "GLB",
+      "source": "Meshy 6 Lite, generated in user account",
+      "license": "CC BY 4.0",
+      "pivot": "ground center",
+      "approved_direction": "neutral softly rounded human scale",
+      "runtime_status": "procedural_placeholder",
+      "group": "bed_pillow_blanket",
+      "meshy_task": "01a13015-83fd-730c-97b2-a33fa2c3d178",
+      "attribution": "Generated with Meshy (https://www.meshy.ai), CC BY 4.0"
+    }
+  ],
+  "animations": [
+    {
+      "source": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "license": "CC0",
+      "files": "motions/quaternius-*.vrma",
+      "conversion": "local humanoid retarget with T-pose rest"
+    },
+    {
+      "source": "https://booth.pm/ja/items/5512385",
+      "files": "motions/VRMA_01..07.vrma",
+      "credit": "pixiv Inc.'s VRoid Project",
+      "restriction": "no redistribution of extractable motion files"
+    }
+  ],
+  "audio_classifier": {
+    "source": "https://huggingface.co/audiomagic/yamnet-onnx",
+    "license": "Apache-2.0",
+    "upstream": "Google YAMNet",
+    "labels_license": "CC BY 4.0"
+  },
+  "mesh_generation_plan": {
+    "strategy": "Two combined scene assets: workstation and bed with pillow/blanket.",
+    "remaining_budget_at_last_observation": 70,
+    "download_issue": "Workstation download requested once. Quota decremented, no local GLB received, user confirmed no download or save dialog. Do not repeat blindly.",
+    "quality_gate": "Check chair clearance, monitor facing direction, mattress surface, actual texture size, mesh bounds and collision anchors before integration."
+  }
+}
