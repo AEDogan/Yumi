@@ -1,0 +1,147 @@
+{
+  "source": "https://github.com/google/aistplusplus_dataset/releases/download/v1.0/motions.zip",
+  "license": "CC BY 4.0",
+  "license_reference": "https://google.github.io/aistplusplus_dataset/factsfigures.html",
+  "attribution": "Ruilong Li, Shan Yang, David A. Ross, Angjoo Kanazawa. AI Choreographer: Music Conditioned 3D Dance Generation with AIST++, ICCV 2021. Annotations by Google LLC.",
+  "sha256": "ceff08766802705888701ae27771ddf28d9c0141043b8a12fc342a0cddd2ed1e",
+  "sequences": 411,
+  "scope": "Whitelisted numpy numeric annotations converted to pickle-free clips; short orientation smoothing and 550 deg/s source joint cap; no SMPL mesh, source videos or source music used.",
+  "runtime_clips": [
+    {
+      "style": "house",
+      "sequences": [
+        "gHO_sFM_cAll_d19_mHO5_ch06",
+        "gHO_sFM_cAll_d21_mHO5_ch20",
+        "gHO_sBM_cAll_d19_mHO0_ch01",
+        "gHO_sBM_cAll_d19_mHO0_ch02",
+        "gHO_sBM_cAll_d19_mHO1_ch01",
+        "gHO_sBM_cAll_d19_mHO1_ch02",
+        "gHO_sBM_cAll_d19_mHO2_ch01",
+        "gHO_sBM_cAll_d19_mHO2_ch02",
+        "gHO_sBM_cAll_d19_mHO3_ch01",
+        "gHO_sBM_cAll_d19_mHO3_ch02",
+        "gHO_sBM_cAll_d20_mHO0_ch01",
+        "gHO_sBM_cAll_d20_mHO0_ch02",
+        "gHO_sBM_cAll_d20_mHO1_ch01",
+        "gHO_sBM_cAll_d20_mHO1_ch02",
+        "gHO_sBM_cAll_d20_mHO4_ch01",
+        "gHO_sBM_cAll_d20_mHO4_ch02",
+        "gHO_sBM_cAll_d20_mHO5_ch01",
+        "gHO_sBM_cAll_d20_mHO5_ch02",
+        "gHO_sBM_cAll_d20_mHO5_ch03",
+        "gHO_sBM_cAll_d20_mHO5_ch04",
+        "gHO_sBM_cAll_d20_mHO5_ch05"
+      ],
+      "duration": 186.73333333333332,
+      "sha256": "d4c69c7c6874a2266c9759cf04c71e9b5536e031e290e1fd7cf7fbeaf0e4865c"
+    },
+    {
+      "style": "popping",
+      "sequences": [
+        "gPO_sFM_cAll_d10_mPO1_ch02",
+        "gPO_sFM_cAll_d11_mPO1_ch09",
+        "gPO_sFM_cAll_d12_mPO1_ch16",
+        "gPO_sBM_cAll_d10_mPO0_ch01",
+        "gPO_sBM_cAll_d10_mPO0_ch02",
+        "gPO_sBM_cAll_d10_mPO1_ch01",
+        "gPO_sBM_cAll_d10_mPO1_ch02",
+        "gPO_sBM_cAll_d10_mPO1_ch03",
+        "gPO_sBM_cAll_d10_mPO1_ch04"
+      ],
+      "duration": 186.53333333333333,
+      "sha256": "d76e36567c640a1f60233aabb52122f1247c124328c7661af32b708f28efa9cc"
+    },
+    {
+      "style": "locking",
+      "sequences": [
+        "gLO_sFM_cAll_d13_mLO2_ch03",
+        "gLO_sFM_cAll_d14_mLO2_ch10",
+        "gLO_sFM_cAll_d15_mLO2_ch17",
+        "gLO_sBM_cAll_d13_mLO0_ch01",
+        "gLO_sBM_cAll_d13_mLO0_ch02",
+        "gLO_sBM_cAll_d13_mLO1_ch01",
+        "gLO_sBM_cAll_d13_mLO1_ch02",
+        "gLO_sBM_cAll_d13_mLO2_ch01",
+        "gLO_sBM_cAll_d13_mLO2_ch02",
+        "gLO_sBM_cAll_d13_mLO2_ch03",
+        "gLO_sBM_cAll_d13_mLO2_ch04"
+      ],
+      "duration": 188.8,
+      "sha256": "159e99a7b124812285c448549b44f624538d25d220fe405894e1d27b29ad94bc"
+    },
+    {
+      "style": "hip-hop",
+      "sequences": [
+        "gMH_sFM_cAll_d22_mMH3_ch04",
+        "gMH_sFM_cAll_d23_mMH3_ch11",
+        "gMH_sFM_cAll_d24_mMH3_ch18",
+        "gMH_sBM_cAll_d22_mMH0_ch01",
+        "gMH_sBM_cAll_d22_mMH0_ch02",
+        "gMH_sBM_cAll_d22_mMH1_ch01",
+        "gMH_sBM_cAll_d22_mMH1_ch02",
+        "gMH_sBM_cAll_d22_mMH2_ch01",
+        "gMH_sBM_cAll_d22_mMH2_ch02",
+        "gMH_sBM_cAll_d22_mMH3_ch01",
+        "gMH_sBM_cAll_d22_mMH3_ch02",
+        "gMH_sBM_cAll_d22_mMH3_ch03",
+        "gMH_sBM_cAll_d22_mMH3_ch04"
+      ],
+      "duration": 192.13333333333333,
+      "sha256": "8382f53048bafa50934b2dabaf1175e5a03b75eb5f80cdf4d08c1fc91c07f41f"
+    },
+    {
+      "style": "la-hip-hop",
+      "sequences": [
+        "gLH_sFM_cAll_d16_mLH4_ch05",
+        "gLH_sFM_cAll_d17_mLH4_ch12",
+        "gLH_sFM_cAll_d18_mLH4_ch19",
+        "gLH_sBM_cAll_d16_mLH0_ch01",
+        "gLH_sBM_cAll_d16_mLH0_ch02",
+        "gLH_sBM_cAll_d16_mLH1_ch01",
+        "gLH_sBM_cAll_d16_mLH1_ch02",
+        "gLH_sBM_cAll_d16_mLH2_ch01",
+        "gLH_sBM_cAll_d16_mLH2_ch02",
+        "gLH_sBM_cAll_d16_mLH3_ch01",
+        "gLH_sBM_cAll_d16_mLH3_ch02",
+        "gLH_sBM_cAll_d17_mLH0_ch01",
+        "gLH_sBM_cAll_d17_mLH0_ch02"
+      ],
+      "duration": 189.96666666666667,
+      "sha256": "6e9f561248ca5a747d24aadc69774661850f6f1cf3497f37e5266731dc4b1b2d"
+    },
+    {
+      "style": "jazz",
+      "sequences": [
+        "gJS_sFM_cAll_d01_mJS3_ch04",
+        "gJS_sFM_cAll_d02_mJS3_ch04",
+        "gJS_sFM_cAll_d03_mJS3_ch04",
+        "gJS_sBM_cAll_d01_mJS0_ch01",
+        "gJS_sBM_cAll_d01_mJS0_ch02",
+        "gJS_sBM_cAll_d01_mJS1_ch01",
+        "gJS_sBM_cAll_d01_mJS1_ch02",
+        "gJS_sBM_cAll_d01_mJS2_ch01",
+        "gJS_sBM_cAll_d01_mJS2_ch02",
+        "gJS_sBM_cAll_d01_mJS3_ch01",
+        "gJS_sBM_cAll_d01_mJS3_ch02",
+        "gJS_sBM_cAll_d01_mJS3_ch03",
+        "gJS_sBM_cAll_d01_mJS3_ch04"
+      ],
+      "duration": 192.13333333333333,
+      "sha256": "02a5a6f1e3c1dcaa515b65ef1ebd3824bc99d4c555dc16d57fc23257fd91953b"
+    },
+    {
+      "style": "waacking",
+      "sequences": [
+        "gWA_sFM_cAll_d25_mWA0_ch01",
+        "gWA_sFM_cAll_d26_mWA0_ch08",
+        "gWA_sFM_cAll_d27_mWA0_ch15",
+        "gWA_sBM_cAll_d25_mWA0_ch01",
+        "gWA_sBM_cAll_d25_mWA0_ch02",
+        "gWA_sBM_cAll_d25_mWA0_ch03",
+        "gWA_sBM_cAll_d25_mWA0_ch04"
+      ],
+      "duration": 185.86666666666667,
+      "sha256": "5c79a81088b3f588150fae4685f5ac3c29e6f381105a7fd42278b275a530ca42"
+    }
+  ]
+}

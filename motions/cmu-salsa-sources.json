@@ -1,0 +1,33 @@
+{
+  "source": "https://mocap.cs.cmu.edu/search.php?subjectnumber=60",
+  "attribution": "The data used in this project was obtained from mocap.cs.cmu.edu.",
+  "seconds": 172.55,
+  "sources": [
+    {
+      "trial": "60_01",
+      "sha256": "8cf03dc614ba2651847276c25f7410a1b888f3a329b5d9faff4fff5dfc80ca55"
+    },
+    {
+      "trial": "60_02",
+      "sha256": "760c79ae833cd60d1c1927a1613eb39146b50ae31902ba1ef00389b163928e1d"
+    },
+    {
+      "trial": "60_03",
+      "sha256": "f53b55a8a3e2a17bb6ed010cfb3d6df3192a7945395294d49ccedf98688aab45"
+    },
+    {
+      "trial": "60_04",
+      "sha256": "784e47019de63d9064eb56187d635b51d6768904906260da827dc44e67d380af"
+    },
+    {
+      "trial": "60_05",
+      "sha256": "8530ba5b20c6d423be08fe3f0f24cbaa7a673748fd34ace9bf1dbdeddad586c1"
+    },
+    {
+      "trial": "60_06",
+      "sha256": "5ae6d17af1b8a18d5446f0b340af37ac22fec4421bb898f216c8ea6c7720025a"
+    }
+  ],
+  "processing": "two-second blends, bounded horizontal travel and closing seam; humanoid IK at runtime",
+  "license": "CMU terms in work/dance-source/cmu-terms.html; not sold as raw motion"
+}

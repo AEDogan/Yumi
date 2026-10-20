@@ -1,0 +1,11 @@
+{
+  "source_project": "Yumi_skins",
+  "source_asset": "/Game/Characters/Mannequins/Anims/Unarmed/Walk/MF_Unarmed_Walk_Fwd",
+  "source_forward_axis": "+Y",
+  "converted_forward_axis": "+Z",
+  "playback_rate": 0.3835,
+  "forward_stride_scale": 0.45,
+  "swing_height_scale": 0.6,
+  "relaxed_hands": true,
+  "source_duration": 1.5
+}
