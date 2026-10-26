@@ -36,7 +36,7 @@ class NativeWake(QObject):
         elif self.enabled and not self.paused and not self.unsupported:self.exhausted=True
     def start(self):
         from resource_guard import require_capacity,GiB
-        require_capacity(GiB//2);root=Path(__file__).resolve().parent
+        require_capacity(3*GiB//4);root=Path(__file__).resolve().parent
         command=self.command or [str(root/'.venv/Scripts/python.exe'),'-u','-B',str(root/'wake_worker.py'),'--name',self.wake_name,'--microphone',getattr(self,'microphone','Otomatik')]
         env=os.environ.copy();env['PYTHONIOENCODING']='utf-8';env['OPENBLAS_NUM_THREADS']='1';env['OMP_NUM_THREADS']='1'
         self.events=queue.Queue(maxsize=8);self.woke=False;self.error=False;self.ready_since=None;self.phase='imports';self.deadline=time.monotonic()+10;self.hard_deadline=time.monotonic()+30
@@ -65,7 +65,7 @@ class NativeWake(QObject):
             elif event in ('unsupported_name','error'):
                 self.error=True;self.unsupported=event=='unsupported_name'
                 codes={'microphone_already_active':'Başka bir Yumi mikrofon oturumu açık. Önce o oturumu kapat.', 'memory_pressure':'Yerel çağrı adı dinlemesi için kullanılabilir bellek azaldı.', 'startup_timeout':'Yerel çağrı adı servisi hazırlanırken zaman aşımına uğradı.'}
-                message='Bu seslenme adı yerel tanıyıcıda desteklenmiyor. Karakter ayarlarında Türkçe seslenme yazımı gir.' if event=='unsupported_name' else codes.get(item.get('code'),'Yerel çağrı adı dinlemesi açılamadı; mikrofon düğmesini kullanabilirsin.')
+                message='Bu model adı yerel tanıyıcıda desteklenmiyor; mikrofon düğmesini kullanabilirsin.' if event=='unsupported_name' else codes.get(item.get('code'),'Yerel çağrı adı dinlemesi açılamadı; mikrofon düğmesini kullanabilirsin.')
                 self.report_failure(message)
         if self.ready_since is not None and time.monotonic()-self.ready_since>30 and not self.error:
             self.attempts=0;self.notified=False

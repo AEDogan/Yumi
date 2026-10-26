@@ -1,3 +1,5 @@
+> 26 Ekim güncel öncelik ve devir: `docs/DEVIR-2026-10-26.md`. Aşağıdaki tarihsel kayıtlar korunur; güncel durum için önce DURUM.md okunmalı.
+
 > Kısa başlangıç: [DURUM.md](DURUM.md). Bu dosya ayrıntılı başvuru/geçmiş kaydıdır; açılışta tamamını okuma. Yeni durum özetini DURUM.md içinde güncelle; ayrıntılı açık işler burada korunur.
 
 # Yumi — birleşik devam noktası ve kalan işler
@@ -55,6 +57,7 @@
 
 12. **Teslim/kurulum bütünlüğü.** Temiz kurulum, yeniden açılış, güncelleme ve tüm özellikler birlikteyken uzun kabul; hesap/ses/model/mikrofon tercihlerinin korunması. Model/animasyon/AI ağırlığı lisans ve atıfları; kuruluma dahil dosyalar ve donanım gereksinimleri. Eski README/plan/senaryo notlarının çelişkili durumlarını bu birleşik kayda bağlamak. Kaynak modeller ve gerçek sohbetlerle yıkıcı test yapılmayacak.
 
+13. **En son yapılacak iş — Android tablet desteği (22 Ekim 2026 kullanıcı isteği).** Tüm mevcut işlerin ardından ele alınacak; bu kayıt uygulamaya başlama talimatı değildir. İlk gerçek kabul cihazı kullanıcının Samsung Galaxy Tab S9 FE+ tableti. Android üzerinde karakter, sohbet ve dokunmatik etkileşim için taşınabilirlik değerlendirilecek; mevcut Windows/Python/Qt ve işletim sistemine bağlı yolların doğrudan APK olarak çalışacağı varsayılmayacak. Ana ekran sayfaları sağa/sola kaydırılırken Yumi'nin görünürlüğü ve konumu, kaydırmayı engellemeyen dokunma/sürükleme, yatay/dikey dönüş, sistem çubukları ve çoklu pencere sınanacak. Diğer uygulamalar üstünde görünme için kullanıcı izinli Android overlay yaklaşımı değerlendirilecek; sistemin veya uygulamaların overlay engelleri korunacak. Sayfa geçişine eşlik eden davranışın Samsung başlatıcısında erişilebilirliği ayrıca doğrulanacak. Gerçek cihazda VRM görünümü/animasyon, FPS, ısınma, pil tüketimi ve arka plan yaşam döngüsü ölçülmeden uyumluluk tamamlandı sayılmayacak.
 ## Beklemede / sonraki aşama
 
 - **Genel FPS araştırması ve100+FPS hedefi:** kullanıcı bekletti. Gizli model ve tam ekran duraklatma zaten var; genel performans kabulü kapatılmadı.
@@ -69,3 +72,21 @@
 Seçili Charon sesinin çalışması; Mehmet ilk/ikinci çağırma; ayrı sohbetler, beş günlük yerel saklama ve sohbet silme; ana model gizle/göster düğmesi; altı tema; PC'nin beğenilen açısı ve sınırlı kullanıcıya baş dönüşü;18% hızlı kısa masa rotası; kitap/kupa/diğer eşya sahnelerinin temel entegrasyonu; hava/gündüz/gece/doğuş/batış manzarası; dans sonu nötr referans düzeltmesi ve örneklenmiş ters ayak/baş-kol korumaları. Bunların geniş gerçek kalite kabulü yukarıdaki ilgili başlıklarda kalır.
 
 Eski “danslar kaldırılacak”, “mobilya sahneleri kurulmadı”,50tür/5.000hareket ve zorunlu Ludovisions ekleme ifadeleri son kullanıcı kararları yerine kullanılamaz. Son aktif dans kapsamı20türdür.
+
+## 23 Ekim — yeni yapılacak: arka plan doluluğu ve karakter sesi
+- [ ] Arka plan doluluğu tutarlılığı: kullanıcı %57 Okyanus temasında dış kabuğun saydamlaşıp ayar iç panelinin opak kaldığını bildirdi. Tüm tema/sohbet/ayar katmanlarında doluluk davranışını düzelt; yazı ve denetimleri okunaklı tut. Ekran görüntüsüyle kabul yapılacak. Henüz düzeltilmedi.
+- [ ] Kadın/erkek anime karakter tınısı ve isteğe bağlı şive: yerel ve bulut alternatiflerini Türkçe, AMD/Windows uyumu, gecikme ve maliyetle karşılaştır. ElevenLabs kapsamda; ücretli diye elenmedi. Mevcut 30 Gemini sesi gerçek anime sesi kabulü değildir.
+
+- [ ] 23 Ekim kullanıcı isteği: etek salınımını saçtan bağımsız azalt; jelibon gibi yaylanma/esneme görünümünü gider. Saç için artırılan tepki korunacak, etek atalet/sönüm ve oturma/geçiş görünümü ayrıca doğrulanacak. Bu madde henüz uygulanmadı.
+
+- [ ] 23 Ekim kullanıcı gözlemi, dans aşamasında ele alınacak: tarayıcıdaki TTS ses denemeleri müzik sanılıp dansı tetikliyor. Konuşma/müzik ayrımı ve Yumi/harici TTS oynatımı için yanlış tetiklemeyi kontrol et; gerçek müzik algısını koru.
+- [ ] Aynı gözlem: dans sırasında özellikle bacaklarda insansı olmayan bükülmeler var. Tüm modellerde kalça-diz-ayak yönü, eklem sınırları, diz çözüm dalı ve gerçek çizim geçişlerini incele. Henüz düzeltilmedi.
+
+## 23 Ekim — Witcher 3 Steam karakter ön değerlendirmesi
+- Triss, Yennefer ve Sasha kıyafetli görünümleri gerçek yerel oyun varlıklarından çalışma alanına açıldı; kaynak oyun dosyaları değiştirilmedi. Yaklaşık 44.125 / 50.498 / 27.632 üçgen (yardımcı/gölge meshleri dahil), gövde ve mimik iskeletleri mevcut. Triss/Yennefer günlüğünde 129 yüz pozu.
+- Blender önizlemesi; Yumi'ye kurulum veya hareket/fizik kabulü yapılmadı. Humanoid retarget, yüz/dudak eşleme ve saç/etek fiziği yeniden uyarlama gerekli. Shader/doku dönüşümünde detay katmanı uyarıları var; oyun görünümüyle birebir sayılmaz.
+- Yerel rapor ve görseller: C:/Users/ahmet/Documents/Codex/2026-10-22/yum/outputs/witcher-preview/DEGERLENDIRME.md. İlk teknik prototip için Triss önerildi; kullanıcıdan entegrasyon kararı gelmedi.
+
+
+## 26 Ekim — genel işleyiş önce, skin işleri ertelendi
+Kullanıcı Triss odaklı çalışmayı durdurdu. Kumaş yırtıkları, mat beyaz görünüm/soluk altın detaylar, kavrayan eller, kaynak referans renkleri ve tüm Witcher kabulü yapılacak olarak korunuyor. Etek uzun kalacak; ön/yanlar ayak altında değil, arkada hafif sürünen kuyruk olacak. Ateş topu pozunun sebep olması henüz varsayım. Görseller ve ayrıntı DURUM.md aktif öncelik bağlantısında. Öncelik genel ses, otomatik davranış, arayüz ve kurulum akışlarıdır. 23 Ekim music-gate.json, TTS örneklerinin reddedildiğini ve müzik örneklerinin kabul edildiğini kaydeder; yukarıdaki eski açık TTS maddesi uygulanmış düzeltmeyi yok saymak için kullanılmamalı. Canlı uzun kabul açık kalır.

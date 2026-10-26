@@ -83,6 +83,12 @@ class LiveSession:
             self.history_seeded=True;self.initial_history=[]
             self.connection_started=time.monotonic()
             self.emit('connected',setup_seconds=round(time.monotonic()-start,3))
+        except asyncio.CancelledError:
+            # Cancellation is not an Exception: an opened, unacknowledged
+            # connection must still be retired when the worker is stopped.
+            try:await self.close(final=False)
+            except Exception:pass
+            raise
         except Exception as error:
             await self.close(final=False)
             # Never render exception bodies/URLs: they can contain credentials.
@@ -195,6 +201,9 @@ class LiveSession:
                 try:message=await asyncio.wait_for(socket.recv(),.25)
                 except asyncio.TimeoutError:
                     await self.maybe_resume(socket);continue
+                # A sender can replace the transport while this recv is pending.
+                # Old interruption/tool messages must not mutate the new session.
+                if self.closing or self.ws is not socket:continue
                 item=json.loads(message);self.handle(item);self.handle_tools(item,socket)
                 await self.maybe_resume(socket)
             except ConnectionClosed as error:
@@ -224,7 +233,8 @@ class LiveSession:
     def is_quiet(self):
         return (not self.user_active and not self.response_pending and not self.generating
                 and not len(self.playback) and not self.tool_tasks
-                and not getattr(self,'skill_feedback_active',False))
+                and not getattr(self,'skill_feedback_active',False)
+                and time.monotonic()-self.last_played>=.25)
 
     def handle_tools(self,item,socket):
         for call_id in item.get('toolCallCancellation',{}).get('ids',[]):
@@ -314,8 +324,15 @@ class LiveSession:
     async def close(self,final=True):
         if final:self.closing=True
         self.playback.clear()
+        socket,self.ws=self.ws,None
         tasks=list(self.tool_tasks.values());self.tool_tasks.clear()
-        for task in tasks:task.cancel()
-        if tasks:await asyncio.gather(*tasks,return_exceptions=True)
-        if self.ws:
-            await self.ws.close();self.ws=None
+        try:
+            for task in tasks:task.cancel()
+            if tasks:await asyncio.gather(*tasks,return_exceptions=True)
+        finally:
+            if socket:
+                try:await socket.close()
+                except BaseException:
+                    transport=getattr(socket,'transport',None)
+                    if transport is not None:transport.abort()
+                    raise

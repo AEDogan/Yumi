@@ -1,5 +1,6 @@
 """VRM Animation 1.0 GLB loader, quaternion interpolation and T-pose retargeting."""
 import json,struct,math
+from weakref import WeakKeyDictionary
 from pathlib import Path
 import numpy as np
 from vrm import VRMData,rotation
@@ -51,7 +52,7 @@ class MotionClip:
             if len(values)!=len(times)*(3 if mode=='CUBICSPLINE' else 1):raise ValueError('Animasyon anahtar sayısı uyuşmuyor.')
             self.channels.append((target['node'],target['path'],times,values,mode));self.duration=max(self.duration,float(times[-1]))
         if not self.channels:raise ValueError('Animasyonda hareket kanalı yok.')
-        self.retarget_cache={}
+        self.retarget_cache=WeakKeyDictionary()
     def pose(self,t,target,loop=True):
         t=t%max(self.duration,1e-5) if loop else max(0.,min(t,max(0.,self.duration-1e-5)));local=[m.copy() for m in self.local];expression={}
         for node,path,times,values,mode in self.channels:
@@ -65,8 +66,10 @@ class MotionClip:
             if path=='rotation':local[node][:3,:3]=rotation(value)
             elif path=='translation':local[node][:3,3]=value
             if node in self.expressions and path=='translation':expression[self.expressions[node]]=float(np.clip(value[0],0,1))
-        cached=self.retarget_cache.get(id(target))
+        cached=self.retarget_cache.get(target)
         if cached is None:
+            from motion_reference import reference_pose
+            reference_local,reference_world=reference_pose(self,target)
             cached=[]
             for name,source in self.bones.items():
                 # VRM 1 thumb names map to VRM 0's differently named joints.
@@ -74,11 +77,11 @@ class MotionClip:
                 if target.legacy and 'Thumb' in name:dest_name=name.replace('Metacarpal','Proximal').replace('ThumbProximal','ThumbIntermediate') if 'Metacarpal' not in name else name.replace('Metacarpal','Proximal')
                 if dest_name not in target.bones:continue
                 dest=target.bones[dest_name];w=self.world[source,:3,:3];l=self.local[source][:3,:3]
-                dw=target.rest[dest,:3,:3];dl=target.local[dest][:3,:3]
+                dw=reference_world[dest,:3,:3];dl=reference_local[dest][:3,:3]
                 left=dl@np.linalg.inv(dw)@target.flip.T@w@np.linalg.inv(l)
                 right=np.linalg.inv(w)@target.flip@dw
                 cached.append((source,dest,left,right))
-            self.retarget_cache[id(target)]=cached
+            self.retarget_cache[target]=cached
         rotations={dest:left@local[source][:3,:3]@right for source,dest,left,right in cached}
         source=self.bones['hips'];dest=target.bones['hips'];source_height=max(.001,self.world[source,1,3]);dest_height=(target.rest[dest,:3,3]@target.flip.T-target.origin)[1]
         parent=self.parents.get(source);parent_rotation=self.world[parent,:3,:3] if parent is not None else np.eye(3)

@@ -91,6 +91,43 @@ class CupGrip:
             cost=np.linalg.norm(hand-desired)+.015*abs(angle)
             if best is None or cost<best[0]:best=(cost,candidate)
         if best is not None:self.model.hair_springs.physics._rotate_subtree(world,b,best[1]@np.linalg.inv(world[b,:3,:3]))
+    def fit_pickup(self,world,target):
+        """Fit the real constrained finger contact, rather than a bind offset."""
+        from interaction_ik import solve_hand
+        d=self.model.data;p=self.model.hair_springs.physics
+        base=world.copy()
+        pole=getattr(self,'pickup_pole',None)
+        def evaluate(goal):
+            trial=base.copy();solve_hand(self.model,trial,'right',goal,elbow_pole=pole)
+            self.align_forearm(trial);self.model.hand_poses.apply(trial,'cup_grip',selected='right')
+            p.solve_arms(trial,gripping=True)
+            return self.contact(trial)-target,trial
+        goal=getattr(self,'pickup_solution',self.canonical(world,self.hand)).copy()
+        error,best=evaluate(goal)
+        if np.linalg.norm(error)>.006:
+            original_goal=goal.copy();best_pole=pole
+            for bend in ([self.sign*.8,-.35,.1],[self.sign*.6,-.45,.85],[self.sign*.3,-1.,-.3]):
+                pole=d.flip.T@np.asarray(bend,float)
+                candidate,trial=evaluate(original_goal)
+                if np.linalg.norm(candidate)<np.linalg.norm(error):error=candidate;best=trial;best_pole=pole
+            pole=best_pole
+        if np.linalg.norm(error)>.006:
+            for offset in ([-.15,0,0],[.15,0,0],[0,0,-.15],[0,0,.15]):
+                candidate_goal=goal+offset;candidate,trial=evaluate(candidate_goal)
+                if np.linalg.norm(candidate)<np.linalg.norm(error):goal=candidate_goal;error=candidate;best=trial
+        for _ in range(8):
+            if np.linalg.norm(error)<.004:break
+            jac=np.column_stack([(evaluate(goal+axis*.003)[0]-error)/.003 for axis in np.eye(3)])
+            step=np.linalg.solve(jac.T@jac+np.eye(3)*.002,-jac.T@error)
+            step*=min(1.,.08/max(np.linalg.norm(step),1e-10));improved=False
+            for rate in (1.,.5,.25):
+                candidate,trial=evaluate(goal+rate*step)
+                if np.linalg.norm(candidate)<np.linalg.norm(error):goal=goal+rate*step;error=candidate;best=trial;improved=True;break
+            if not improved:break
+        # Retain the incoming pose if no physically bounded candidate improves it.
+        if np.linalg.norm(error)<np.linalg.norm(self.contact(world)-target):world[:]=best
+        self.pickup_solution=goal;self.pickup_pole=pole;self.pickup_error=float(np.linalg.norm(self.contact(world)-target))
+
     def sip_goal(self,world):
         """Solve the actual constrained arm/hand/rim chain, once per head pose."""
         mouth=self.mouth(world)

@@ -44,3 +44,13 @@ desktop.ini
 .vscode/
 .idea/
 .agents/
+
+# Local secrets and Unreal generated files
+.env
+.env.*
+!.env.example
+DerivedDataCache/
+Intermediate/
+Saved/
+Binaries/
+

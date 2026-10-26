@@ -35,6 +35,11 @@ def execute(window,text):
         return 'Akıllı ev ve cihazlar panelini açıyorum.'
     from daily_scenarios import SCENARIOS
     from action_transition import ACTIONS,STOP
+    if window.settings.get('skin')=='Clippy' and not text.startswith('karakter:') and text not in ('karakteri değiştir','sonraki karakter'):
+        if text in ('el salla','merhaba de'):
+            window.overlay.avatar.clippy.play('Wave');return 'Merhaba!'
+        if text in ACTIONS or text in SCENARIOS:
+            return 'Clippy kendi orijinal animasyonlarını kullanıyor.'
     runtime=getattr(window,'music_runtime',None)
     if runtime and runtime.active and runtime.motion and runtime.motion.pole and text not in STOP and (text in ACTIONS or text in SCENARIOS or text=='müzik dinle' or text.startswith('karakter:')):
         runtime.stop();window.pending_avatar_command=text
@@ -94,7 +99,7 @@ def execute(window,text):
     if text in ('karakteri değiştir','sonraki karakter') or text.startswith('karakter:'):
         from skins import available
         from voice_profiles import profile,character_name
-        entries=[(label,key) for label,key in available(window.settings) if key.startswith('vrm:')]
+        entries=[(label,key) for label,key in available(window.settings) if key.startswith('vrm:') or key=='Clippy']
         if not entries:return 'Kütüphanede VRM karakter yok.'
         if text.startswith('karakter:'):
             requested=text.split(':',1)[1].casefold();matches=[key for label,key in entries if str(profile(window.settings,key).get('name','')).casefold()==requested or label.casefold()==requested]

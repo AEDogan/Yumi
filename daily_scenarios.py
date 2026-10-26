@@ -55,6 +55,10 @@ class DailyDirector:
         if self.scene and not self.scene.done:self.scene.request_exit()
     def tick(self,now):
         o=self.owner;avatar=o.overlay.avatar
+        # Drop a finished scene even while automatic decisions are disabled,
+        # hidden or suppressed. The avatar has already released its resources.
+        if avatar.furniture is None and self.scene is not None:
+            self.scene=None;self.current=None;self.cooldown=now+2.
         if not o.settings.get('daily_scenarios',True) and not self.manual:return
         if getattr(getattr(o,'fullscreen_pause',None),'paused',False):return
         if not avatar.model or not o.overlay.isVisible() or o.overlay.drag is not None:return
@@ -66,8 +70,6 @@ class DailyDirector:
             self.media=dict(getattr(getattr(o,'media_activity',None),'state',{}))
             if not self.media.get('playing') and o.system_audio.sample()>.008:self.media={'playing':True,'kind':'unknown'}
         scene=avatar.furniture
-        if scene is None and self.scene is not None:
-            self.scene=None;self.current=None;self.cooldown=now+2.
         # Explicit furniture/actions take priority; never replace somebody's seat.
         if scene is not None and scene is not self.scene:return
         if o.busy or o.avatar.speaking or getattr(o,'pending_avatar_command',None):return
@@ -99,7 +101,7 @@ class DailyDirector:
                 scene=FurnitureScene(avatar.model,getattr(avatar,'previous_chair',None),mode=mode)
                 scene.activity=ScenarioActivity(scene,desired)
         except (OSError,ValueError) as error:
-            if 'scene' in locals():scene.release()
+            if scene is not None:scene.release()
             self.cooldown=now+30.;o.set_status('Senaryo açılamadı: '+str(error));return
         avatar.furniture=scene;avatar.previous_chair=scene.fit.item['id']
         self.scene=scene;self.current=desired

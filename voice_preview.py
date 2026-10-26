@@ -32,7 +32,7 @@ class VoicePreview(QObject):
         if self.owner.busy:
             self.label.setText('Ses örneğinden önce mevcut konuşmayı bitir.');return
         selected=voice.split(':',1)[1]
-        if selected not in ('Kore','Puck','Charon','Aoede','Fenrir'):
+        if selected not in __import__('voice_profiles').GEMINI_VOICE_NAMES:
             self.label.setText('Bu Gemini sesi desteklenmiyor.');return
         from resource_guard import require_capacity,GiB
         from voice_profiles import character_name

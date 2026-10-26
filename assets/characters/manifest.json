@@ -1,0 +1,226 @@
+{
+  "repository": "https://github.com/madjin/vrm-samples",
+  "commit": "e16eb187100149a315ad92c3c9968f1d5baa6c7d",
+  "models": {
+    "vrm:madjin-Darkness_Shibu.vrm": {
+      "name": "Darkness Shibu",
+      "sha256": "0b50573d2d054d98c0a6fc5a5ce872e1b2c8bff8718476ff72a9a68c48674fd8",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Darkness_Shibu.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "Darkness Shibu",
+        "texture": 26,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-HairSample_Female.vrm": {
+      "name": "HairSample_Female",
+      "sha256": "adfd242317aaabc773f31f7fff7b013979fbb5baa47e97427a78913d9cb4e979",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/HairSample_Female.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "HairSample_Female",
+        "texture": 24,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-HairSample_Male.vrm": {
+      "name": "HairSample_Male",
+      "sha256": "7aeca142dabbc26ba0f5b9c998c8f3cb6df341287d67788427ac837223785a3f",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/HairSample_Male.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "HairSample_Male",
+        "texture": 24,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-Sendagaya_Shibu.vrm": {
+      "name": "Sendagaya Shibu",
+      "sha256": "b7bcad5e5890abc4d7c65f9afc31da2445db03197d44f1ec10447f9db5abeaff",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Sendagaya_Shibu.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "Sendagaya Shibu",
+        "texture": 29,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-Sendagaya_Shino.vrm": {
+      "name": "Sendagaya Shino",
+      "sha256": "1e177c1a7b14f783a9c48395831db8616260d3bddd4154cb2784b779adca49b5",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Sendagaya_Shino.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "Sendagaya Shino",
+        "texture": 29,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-Victoria_Rubin.vrm": {
+      "name": "Victoria Rubin",
+      "sha256": "b1372131bdbf233f46320146d565f342a7e4f6f4b8f2aefb301f1a283ec07e1e",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Victoria_Rubin.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "Victoria Rubin",
+        "texture": 27,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-Vita.vrm": {
+      "name": "Vita",
+      "sha256": "f2bf78f28a24e2f75f5ca0b6c3b646654c394e4b03592dfaa0d0633ef0972b4d",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Vita.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "Vita",
+        "texture": 27,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-Vivi.vrm": {
+      "name": "Vivi",
+      "sha256": "eaf902e041a7a810f1423599ae75682f61184ab6ef0206da9a8ed9caa8ec3a9d",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Vivi.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "",
+        "contactInformation": "",
+        "reference": "",
+        "title": "Vivi",
+        "texture": 27,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "CC0",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-AvatarSample_A.vrm": {
+      "name": "Yumi",
+      "sha256": "b86b0b8a66d48911431d6f920a5211a974226f83aa672eca3f3dfade58ac346e",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/stable/AvatarSample_A.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "VRoid",
+        "contactInformation": "",
+        "reference": "",
+        "title": "AvatarSample_A",
+        "texture": 27,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "Other",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-AvatarSample_B.vrm": {
+      "name": "AvatarSample_B",
+      "sha256": "4a271bd3b5a3d19e054fd113ee154635b72e7141f4a8ccbcdba3c7f9cea6ee8d",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/stable/AvatarSample_B.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "VRoid",
+        "contactInformation": "",
+        "reference": "",
+        "title": "AvatarSample_B",
+        "texture": 29,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "Other",
+        "otherLicenseUrl": ""
+      }
+    },
+    "vrm:madjin-AvatarSample_C.vrm": {
+      "name": "AvatarSample_C",
+      "sha256": "395d5b04696e888f07bc856ae01bf72a974b7e773132c7443dc59d1688045b8a",
+      "source": "https://github.com/madjin/vrm-samples/blob/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/stable/AvatarSample_C.vrm",
+      "original_metadata": {
+        "version": "",
+        "author": "VRoid",
+        "contactInformation": "",
+        "reference": "",
+        "title": "AvatarSample_C",
+        "texture": 24,
+        "allowedUserName": "Everyone",
+        "violentUssageName": "Allow",
+        "sexualUssageName": "Allow",
+        "commercialUssageName": "Allow",
+        "otherPermissionUrl": "",
+        "licenseName": "Other",
+        "otherLicenseUrl": ""
+      }
+    }
+  }
+}

@@ -24,9 +24,9 @@ def stylesheet(theme='pearl',opacity=94):
  QToolButton#navButton:hover{{background:{surface(accent,10)};color:{text}}}
  QToolButton#navButton:checked{{background:{surface(accent,14)};color:{text};border-color:{surface(accent,18)}}}
  QToolButton#navButton:focus{{border:1px solid {accent}}}
- #panel{{background:{surface(panel,94)};border:0;border-top-left-radius:16px}}
+ #panel{{background:{surface(panel,0)};border:0;border-top-left-radius:16px}}
  #heading{{font-size:21px;font-weight:600}} #badge{{color:{muted};font-size:12px;background:transparent}}
- QPushButton{{background:{surface(bg,92)};border:1px solid {surface(muted,24)};border-radius:9px;padding:8px 12px;min-height:22px}}
+ QPushButton{{background:{surface(bg,18*opacity/100)};border:1px solid {surface(muted,24)};border-radius:9px;padding:8px 12px;min-height:22px}}
  QPushButton:hover{{background:{surface(accent,12)};border-color:{surface(accent,40)}}}
  QPushButton:pressed{{background:{surface(accent,20)}}}
  QPushButton:focus,QToolButton:focus,QLineEdit:focus,QComboBox:focus{{border:1px solid {accent}}}
@@ -44,27 +44,27 @@ def stylesheet(theme='pearl',opacity=94):
  #deleteChat{{background:transparent;border-color:transparent;color:{muted};font-size:12px}}
  #deleteChat:hover{{background:#fce8ea;color:#9a2638}}
  QScrollArea,QScrollArea::viewport,#settingsContent,#messageContent{{background:transparent;border:0}}
- QLabel[role="assistant"]{{background:{surface(bg,96)};color:{text};border-radius:14px;padding:14px}}
- QLabel[role="user"]{{background:{surface(user,98)};color:{text};border-radius:14px;padding:14px}}
+ QLabel[role="assistant"]{{background:{surface(bg,18*opacity/100)};color:{text};border-radius:14px;padding:14px}}
+ QLabel[role="user"]{{background:{surface(user,18*opacity/100)};color:{text};border-radius:14px;padding:14px}}
  QLabel[role="error"]{{background:#fce8ea;color:#922a3b;border-radius:12px;padding:14px}}
- #composer{{background:{surface(bg,96)};border:1px solid {surface(muted,28)};border-radius:14px}}
- QLineEdit{{background:{surface(panel,96)};border:1px solid {surface(muted,35)};padding:11px;border-radius:9px;selection-background-color:{accent}}}
+ #composer{{background:{surface(bg,18*opacity/100)};border:1px solid {surface(muted,28)};border-radius:14px}}
+ QLineEdit{{background:{surface(panel,18*opacity/100)};border:1px solid {surface(muted,35)};padding:11px;border-radius:9px;selection-background-color:{accent}}}
  #messageInput{{background:transparent;border:0;padding:10px 4px;min-height:22px}}
  #sendButton,#jumpButton,#primaryButton{{background:{accent};color:{bg};border:1px solid transparent;font-weight:600}}
  #sendButton{{padding:0;min-height:0;border-radius:10px}}
  #sendButton:hover,#primaryButton:hover{{border:1px solid {text}}}
  #jumpButton{{border-radius:9px;padding:4px;min-height:0}}
  #footer{{font-size:11px;padding-top:3px}}
- QDialog,#settingsPage{{background:{bg}}}
+ QDialog{{background:{surface(bg,opacity)}}} #settingsPage{{background:transparent}}
  #settingsSections{{background:transparent;border:0;outline:0}}
  #settingsSections::item{{padding:13px 8px;border:1px solid transparent;border-radius:9px;margin:2px 0}}
  #settingsSections::item:selected{{background:{surface(accent,14)};color:{text}}}
  #settingsSections::item:focus{{border-color:{accent}}}
- #themeChoice{{background:{surface(panel,98)};border:1px solid {surface(muted,25)};padding:7px;min-height:60px;font-size:12px}}
+ #themeChoice{{background:{surface(panel,18*opacity/100)};border:1px solid {surface(muted,25)};padding:7px;min-height:60px;font-size:12px}}
  #themeChoice:checked{{border:2px solid {accent};background:{surface(accent,8)}}}
- QGroupBox{{background:{surface(panel,65)};border:1px solid {surface(muted,20)};border-radius:12px;margin-top:18px;padding:18px 12px 12px}}
+ QGroupBox{{background:{surface(panel,18*opacity/100)};border:1px solid {surface(muted,20)};border-radius:12px;margin-top:18px;padding:18px 12px 12px}}
  QGroupBox::title{{subcontrol-origin:margin;left:12px;font-weight:600}}
- QComboBox{{background:{surface(panel,98)};border:1px solid {surface(muted,35)};border-radius:9px;padding:9px 30px 9px 10px;min-height:22px}}
+ QComboBox{{background:{surface(panel,18*opacity/100)};border:1px solid {surface(muted,35)};border-radius:9px;padding:9px 30px 9px 10px;min-height:22px}}
  QComboBox::drop-down{{subcontrol-origin:padding;subcontrol-position:top right;width:28px;border:0}}
  QComboBox::down-arrow{{image:url({arrow});width:12px;height:8px;margin-right:7px}}
  QComboBox QAbstractItemView{{background:{panel};color:{text};selection-background-color:{user};selection-color:{text};padding:5px}}

@@ -95,6 +95,36 @@ class GenreClassifier:
         music=False if speech>=max(.15,first*.9) else True if first>=.20 else None
         return {'genre':name if accepted else 'unknown','genre_score':first,'music_detected':music,'genre_agreement':agreement,'genre_candidates':[(n,round(v,3)) for v,n in ranked[:3]]}
 
+class GenreStability:
+    """Require two accepted windows, allowing bounded compatible ambiguity.
+
+    An ambiguous window never supplies a vote or publishes a genre. It may
+    retain a pending accepted vote only when its leading evidence agrees.
+    """
+    def __init__(self):
+        self.candidate=None;self.count=0;self.accepted_at=None;self.last_stamp=None
+
+    def update(self,result,stamp):
+        if not np.isfinite(stamp):
+            self.__init__();return 'unknown'
+        if self.last_stamp is not None and stamp<=self.last_stamp:
+            self.__init__();return 'unknown'
+        self.last_stamp=stamp
+        if self.accepted_at is not None and stamp-self.accepted_at>12.:
+            self.candidate=None;self.count=0;self.accepted_at=None
+        genre=result['genre']
+        if genre=='unknown':
+            ranked=result.get('genre_candidates',[])
+            compatible=(result.get('music_detected') is True and ranked and
+                        ranked[0][0]==self.candidate and
+                        result.get('genre_score',0.)>=.20 and
+                        result.get('genre_agreement',0.)>.5)
+            if not compatible:self.candidate=None;self.count=0;self.accepted_at=None
+            return 'unknown'
+        self.count=self.count+1 if genre==self.candidate else 1
+        self.candidate=genre;self.accepted_at=stamp
+        return genre if self.count>=2 else 'unknown'
+
 class OutputGenre:
     def __init__(self):
         self.queue=queue.Queue(maxsize=1);self.stop_event=threading.Event();self.state={'genre':'unknown','genre_score':0.,'genre_stamp':0.}
@@ -108,20 +138,19 @@ class OutputGenre:
     def close(self):self.stop_event.set()
     def _run(self):
         try:
-            classifier=GenreClassifier();candidate=None;count=0;seen=self.generation
+            classifier=GenreClassifier();stability=GenreStability();seen=self.generation
             while not self.stop_event.is_set():
                 try:samples,rate,stamp,generation=self.queue.get(timeout=.2)
                 except queue.Empty:continue
                 if generation!=self.generation:continue
-                if generation!=seen:candidate=None;count=0;seen=generation
+                if generation!=seen:stability=GenreStability();seen=generation
                 result=classifier.predict(samples,rate)
                 if self.stop_event.is_set():break
                 if generation!=self.generation:continue
-                genre=result['genre'];count=count+1 if genre==candidate else 1;candidate=genre
                 # Music presence must not wait for a stable genre label. A
                 # hip-hop/dubstep ambiguity previously hid positive music
                 # evidence forever, so automatic dancing never started.
-                label=genre if genre=='unknown' or count>=2 else 'unknown'
+                label=stability.update(result,stamp)
                 self.state={**result,'genre':label,'genre_stamp':stamp}
         except Exception:
             self.state={'genre':'unknown','genre_score':0.,'genre_stamp':0.,'genre_error':'Yerel tür modeli yüklenemedi; medya etiketi veya elle seçim kullanılabilir.'}

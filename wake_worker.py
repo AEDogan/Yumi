@@ -17,7 +17,7 @@ def emit(event,**values):print(json.dumps({'event':event,**values},ensure_ascii=
 def main():
     global PHASE
     parser=argparse.ArgumentParser();parser.add_argument('--name',required=True);parser.add_argument('--model-path',default=str(ROOT/'models/wake-vosk-tr'));parser.add_argument('--check',action='store_true');parser.add_argument('--microphone',default='Otomatik');args=parser.parse_args()
-    require_capacity(GiB//2);job=MemoryJob(GiB,GiB//2);job.attach();lease=None;stream=None;found=False
+    require_capacity(3*GiB//4);job=MemoryJob(GiB,3*GiB//4);job.attach();lease=None;stream=None;found=False
     for variable in ('OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS'):os.environ[variable]='1'
     try:
         PHASE='model';emit('progress',phase=PHASE)

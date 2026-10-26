@@ -37,11 +37,11 @@ class PropReturn:
             self.bounds[key]=np.array([[x,y,z] for x in (points[:,0].min(),points[:,0].max()) for y in (points[:,1].min(),points[:,1].max()) for z in (points[:,2].min(),points[:,2].max())])
         if self.standing:
             from furniture_contacts import SurfaceField
-            triangles=np.concatenate([part['pos'][part['indices'].reshape(-1,3)] for part in s.table.parts])
+            triangles=np.concatenate([part['pos'][part['indices'].reshape(-1,3)] for part in s.table.parts])@s.table_rotation.T
             self.table_field=SurfaceField(triangles,(0,2,1))
             center=np.array(s.table_row['surface']['center']);center[1]-=s.table.minimum[1]
             self.surface=s.table_position+center*s.table_scale
-            lo=s.table.minimum.copy();hi=s.table.maximum.copy();lo[1]=hi[1]=0.
+            lo=np.array(s.table_row['bounds']['min']);hi=np.array(s.table_row['bounds']['max']);lo[1]=hi[1]=0.
             table_corners=np.array([[x,0.,z] for x in (lo[0],hi[0]) for z in (lo[2],hi[2])])*s.table_scale+s.table_position
             radius=max(.28,abs(m.rest_canonical['leftUpperArm'][0]-m.rest_canonical['rightUpperArm'][0])*.6)
             chair=np.array([[x,0.,z] for x in (s.chair_min[0],s.chair_max[0]) for z in (s.chair_min[2],s.chair_max[2])])@s.turn.T+s.origin
@@ -55,7 +55,7 @@ class PropReturn:
             for _ in range(12):
                 try:planned=route(front[[0,2]],self.approach[[0,2]],self.obstacles,radius);break
                 except ValueError:front+=s.forward*.12
-            else:raise ValueError('Sehpaya güvenli bırakma yolu bulunamadı.')
+            else:raise ValueError('Sehpaya gÃƒÂ¼venli bÃ„Â±rakma yolu bulunamadÃ„Â±.')
             self.route=[front]+[np.array([p[0],0.,p[1]]) for p in planned]
             home_path=route(front[[0,2]],np.zeros(2),self.obstacles,radius)
             self.exit_route=[np.array([p[0],0.,p[1]]) for p in route(self.approach[[0,2]],front[[0,2]],self.obstacles,radius)]+[np.array([p[0],0.,p[1]]) for p in home_path]
@@ -83,10 +83,40 @@ class PropReturn:
         m=translation(base);m[:3,:3]=turn(np.array([1.,0.,0.]),math.radians(pitch))*self.scale[key]
         m[:3,3]-=m[:3,:3]@self.anchors[key];return m
     def target(self,key):
-        # Separate several returned objects on the same measured tabletop.
-        p=self.surface.copy()
-        if len(self.keys)>1:p[0]+=.145 if key=='remote' else -.09
-        return p
+        if not self.standing:return self.surface.copy()
+        if not hasattr(self,'targets'):
+            patch=np.asarray(self.scene.table_row['surface']['patch'])[:,[0,2]]
+            ordered=sorted(set(map(tuple,patch)));hull=[]
+            def cross(a,b,c):return (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])
+            for sequence in (ordered,ordered[::-1]):
+                edge=[]
+                for point in sequence:
+                    while len(edge)>1 and cross(edge[-2],edge[-1],point)<=0:edge.pop()
+                    edge.append(point)
+                hull.extend(edge[:-1])
+            hull=np.asarray(hull)*self.scene.table_scale+self.scene.table_position[[0,2]]
+            edges=np.roll(hull,-1,axis=0)-hull
+            normals=np.column_stack((-edges[:,1],edges[:,0]));normals/=np.linalg.norm(normals,axis=1)[:,None]
+            lo=hull.min(0);hi=hull.max(0)
+            grid=np.array([[x,z] for x in np.linspace(lo[0],hi[0],29) for z in np.linspace(lo[1],hi[1],29)])
+            self.targets={};occupied=[]
+            for item in self.keys:
+                cloud=self.clouds[item][:,:3]*self.scale[item]
+                midpoint=(cloud[:,[0,2]].min(0)+cloud[:,[0,2]].max(0))*.5
+                offsets=cloud[:,[0,2]]-midpoint
+                margin=(offsets@normals.T).min(0)
+                candidates=np.vstack((self.surface[[0,2]],grid))
+                valid=np.all(np.einsum('nej,ej->ne',candidates[:,None,:]-hull,normals)+margin>=.012,axis=1)
+                extent=np.ptp(cloud[:,[0,2]],axis=0)*.5
+                for center,half in occupied:
+                    valid &= np.any(np.abs(candidates-center)>extent+half+.025,axis=1)
+                choices=candidates[valid]
+                if not len(choices):raise ValueError('EÅŸyanÄ±n tamamÄ±nÄ± destekleyen ayrÄ± bir sehpa alanÄ± bulunamadÄ±.')
+                preferred=self.surface[[0,2]]+np.array([-.09,0.]) if item=='bowl' else self.approach[[0,2]]
+                selected=choices[np.argmin(np.linalg.norm(choices-preferred,axis=1))]
+                target=self.surface.copy();target[[0,2]]=selected
+                self.targets[item]=target;occupied.append((selected,extent))
+        return self.targets[key].copy()
     def local_target(self,key):return rotation(self.scene.current_angle).T@(self.target(key)-self.scene.position)
     def supported(self,points):
         if not self.scene.table:return False
@@ -142,10 +172,10 @@ class PropReturn:
                 if delta<0:self.drops[key]=(-float(delta),0.)
                 else:self.placed[key][1,3]+=delta
                 self.stage='release';self.clock=0.
-            elif key=='remote' and supported and -.10<error[1]<0 and np.linalg.norm(error[[0,2]])<.09:
-                # Let a remote released just above a supported tabletop fall
+            elif self.standing and supported and delta is not None and -.15<delta<0:
+                # Let a carried object just above a fully supporting tabletop fall
                 # vertically under gravity, rather than snapping it to a point.
-                self.placed[key]=matrix;self.drops[key]=(-float(error[1]),0.)
+                self.placed[key]=matrix;self.drops[key]=(-float(delta),0.)
                 self.stage='release';self.clock=0.
             if self.stage=='release':self.release_hands={side:self.hand(self.model.world,side).copy() for side in ('left','right')}
         if self.stage=='release' and self.clock>=.5:
@@ -226,3 +256,4 @@ class PropReturn:
                 if s.desk:matrix[:3,3]+=s.turn@np.array([4.,0.,4.])*(1-s.desk_visibility)
             else:matrix=self.actor()@self.held_matrix(key,self.model.world)
             glPushMatrix();glMultMatrixd(matrix.T.copy());self.activity.assets[key].draw(animation_time=self.animation() if key=='book' else None);glPopMatrix()
+

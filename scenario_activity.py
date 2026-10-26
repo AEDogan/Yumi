@@ -17,7 +17,7 @@ class ScenarioActivity:
         self.extra_floor=np.empty((0,3))
         self.look_weight=0.
         self.pickup_correction=np.zeros(3)
-        self.returner=None;self.return_started=False
+        self.returner=None;self.return_started=False;self.abort_before_use=False
         if kind=='reading':self.next_event=self.rng.uniform(12,18)
         if kind=='window':self.next_event=self.rng.uniform(8,12)
         files={'reading':{'book':'book_animated_book__historical_book.glb'},'tv':{'tv':'flat_screen_television.glb','stand':'tv_stand.glb','remote':'tv_remote_control.glb','bowl':'popcorn_bowl.glb','snack':'popcorn_flake.glb'},
@@ -45,10 +45,17 @@ class ScenarioActivity:
                 self.extra_floor=points@scene.turn.T+scene.origin
         except (OSError,ValueError):
             self.ready_to_leave=True;self.release();raise
+        self.book_contacts=None
+        if kind=='reading':
+            from book_contacts import BookContacts
+            self.book_contacts=BookContacts(self)
         scene.model.scenario_activity=self
     def step(self,dt):
         look=1. if self.scene.phase=='seated' and not getattr(self.scene.model,'speaking_for_seat',False) else 0.
         self.look_weight+=(look-self.look_weight)*(1-math.exp(-dt/.25))
+        if self.cleanup and getattr(self,'abort_before_use',False):
+            self.cleanup_clock+=dt;self.ready_to_leave=True
+            return
         if self.cleanup:
             self.cleanup_clock+=dt
             # Finish the short lap-to-mouth-to-lap cycle before grasping the
@@ -108,9 +115,12 @@ class ScenarioActivity:
             sign=1 if model.rest_canonical[side+'UpperArm'][0]>=model.rest_canonical['hips'][0] else -1
             if self.kind=='reading':
                 anchor,width=self.reading_target(model,world)
-                goal=anchor+np.array([sign*width*.42,0.,0.])
+                # Put wrists outside the cover; the fingers extend inward
+                # onto its edge. Wrist targets inside the cover drove the
+                # whole palm through the pages.
+                goal=anchor+np.array([sign*width*.55,0.,0.])
                 if side=='right' and self.event=='page':
-                    goal[0]=anchor[0]+sign*width*.42*(1-.8*pulse);goal+=np.array([0.,.04,.03])*pulse
+                    goal[0]=anchor[0]+sign*width*.55*(1-.8*pulse);goal+=np.array([0.,.04,.03])*pulse
                 goals[side]=goal
             elif self.kind=='tv' and side=='right':
                 goal=np.array([sign*f.width*.19,f.height+f.padding*2+.07,f.upper*.54])
@@ -159,6 +169,19 @@ class ScenarioActivity:
     def apply_pose(self,world,model):
         if self.returner:self.returner.apply_body(world)
         if model.hand_gesture:return
+        if self.kind=='coffee' and self.clock<15 and not getattr(self,'pickup_layout_fitted',False):
+            # Fit the placed cup before reaching starts. The complete cup
+            # footprint must remain supported by the actual counter.
+            self.pickup_layout_fitted=True
+            grip=self.cup_grip;asset=self.assets['mug'];rotation=np.diag([grip.sign,1.,grip.sign])
+            for _ in range(3):
+                target=self.scene.cup_local+rotation@((grip.anchor-grip.center)*grip.scale)
+                trial=world.copy();grip.fit_pickup(trial,target);error=grip.contact(trial)-target
+                if np.linalg.norm(error)<.006:break
+                candidate=self.scene.cup_local.copy();candidate[[0,2]]+=error[[0,2]]
+                half=asset.extent[[0,2]]*grip.scale*.5
+                if np.any(candidate[[0,2]]-half<self.scene.counter_min[[0,2]]) or np.any(candidate[[0,2]]+half>self.scene.counter_max[[0,2]]):break
+                self.scene.cup_local=candidate
         from motion import ik
         from vrm import aim
         d=model.data;physics=model.hair_springs.physics
@@ -228,6 +251,9 @@ class ScenarioActivity:
             if self.kind=='coffee' and 17.<=self.clock<19.:
                 rotation=np.diag([self.cup_grip.sign,1.,self.cup_grip.sign])
                 target=self.scene.cup_local+rotation@((self.cup_grip.anchor-self.cup_grip.center)*self.cup_grip.scale)
+                if grip>.01:
+                    fit_target=self.cup_grip.contact(world)*(1-grip)+target*grip
+                    self.cup_grip.fit_pickup(world,fit_target)
                 error=target-self.cup_grip.contact(world)
                 self.pickup_correction=np.clip(self.pickup_correction+error*.7,-.12,.12)
     def apply_fingers(self,world,model):
@@ -238,6 +264,7 @@ class ScenarioActivity:
             style={'reading':'book_grip','meeting':'notebook_grip','tv':'remote_grip'}[self.kind]
             for side in (('left','right') if self.kind!='tv' else ('right',)):
                 hands.fingers(world,side,'point' if self.kind=='reading' and side=='right' and self.event=='page' else style,self.weight)
+        if self.book_contacts is not None:self.book_contacts.solve(model,world)
         if self.kind in ('typing','coding','browsing') and self.event!='think' and not getattr(model,'speaking_for_seat',False):
             from finger_contacts import key_press
             workstation=self.scene.workstation
@@ -299,7 +326,8 @@ class ScenarioActivity:
             page_time=3.+min(1.5,self.event_clock*.47) if self.event=='page' else 3.
             if self.cleanup:page_time=3.+3.666*smooth(self.cleanup_clock/1.25)
             sign=1 if model.rest_canonical['leftUpperArm'][0]>=model.rest_canonical['hips'][0] else -1
-            center=hand('left')-np.array([sign*width*.42,.018,-.02])
+            # The supporting wrist remains the anchor during a page turn.
+            center=hand('left')-np.array([sign*width*.55,.018,-.02])
             self._draw_asset('book',center,height,pitch=-48,animation_time=page_time)
         elif self.kind=='tv':
             remote=hand('right')+np.array([0.,.008,.01])

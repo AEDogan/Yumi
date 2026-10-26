@@ -1,10 +1,11 @@
 """Model-space relaxed hands; bend toward the palm, never guess local X."""
 import math
+from weakref import WeakKeyDictionary
 import numpy as np
 from vrm import rotation
-_CACHE={}
+_CACHE=WeakKeyDictionary()
 def relaxed_hands(rotations,target):
- key=id(target)
+ key=target
  if key not in _CACHE:
   rest={name:(target.rest[node,:3,3]@target.flip.T-target.origin)*target.scale for name,node in target.bones.items()};adjustments={}
   for side in ('left','right'):

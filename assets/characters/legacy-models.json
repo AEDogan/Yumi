@@ -1,0 +1,32 @@
+{
+  "1444557518205200992.vrm": {
+    "name": "Kaito",
+    "model_sha256": "1f7ca730552700c385cc0d7111ac42bcdeb10a7d2041f1d9717cf5c7e3a47d53",
+    "legacy": true,
+    "group": "anime"
+  },
+  "4107103476080737641.vrm": {
+    "name": "Eddy",
+    "model_sha256": "8eebbcd290e0d9987fc3b7a487c23505826efa49a6ce61293f758fc604b4d480",
+    "legacy": true,
+    "group": "anime"
+  },
+  "4405699356021512973.vrm": {
+    "name": "Clara",
+    "model_sha256": "ce8edb9a9be7193fe550cf604b5907f4d066e490a590ab53ed67e6954b42d8fc",
+    "legacy": true,
+    "group": "anime"
+  },
+  "8151855394303479444.vrm": {
+    "name": "Neko",
+    "model_sha256": "82addeabed04c25c8571bd479b4e47d1b7a5919fdbf3819bd57378f65356ad4a",
+    "legacy": true,
+    "group": "anime"
+  },
+  "Sonetto.vrm": {
+    "name": "Lyra",
+    "model_sha256": "cd4681cba360d462e32d64032c687901435b2291b96df4ef129a7e80f8e40481",
+    "legacy": true,
+    "group": "anime"
+  }
+}

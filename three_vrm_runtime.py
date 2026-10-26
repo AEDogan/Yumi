@@ -77,14 +77,15 @@ class ThreeVRMSprings:
         schema={key:data.g.get(key,default) for key,default in (('nodes',[]),('extensions',{}),('extensionsUsed',[]))}
         result=self.worker.request({'op':'init','id':self.id,'json':schema,'local':np.asarray(data.local).transpose(0,2,1).reshape(-1,16).tolist()},timeout=15)
         self.indices=set(result['indices']);self.version=result['version'];self.declarations=result['declarations']
-    def apply(self,t,world):
+    def apply(self,t,world,external_velocity=None,hair_nodes=(),cloth_nodes=(),skirt_nodes=()):
         d=self.data;local=world.copy()
         for n in d.order:
             parent=d.parents.get(n)
             if parent is not None:local[n]=np.linalg.solve(world[parent],world[n])
         dt=1/60 if self.last is None else t-self.last
-        reset=self.last is None or dt<0 or dt>.15;self.last=t
+        reset=self.last is None or dt<0 or dt>.15;self.last=t;self.frame_dt=max(0.,min(dt,.05))
         result=self.worker.request({'op':'step','id':self.id,'dt':max(0.,min(dt,.05)),'reset':reset,
+            'skirtNodes':list(skirt_nodes),'clothNodes':list(cloth_nodes),'hairNodes':list(hair_nodes),'externalForce':(-np.asarray(external_velocity if external_velocity is not None else np.zeros(3))*.04).tolist(),
             'local':local.transpose(0,2,1).reshape(-1,16).tolist()})
         from vrm import rotation
         for index,q in result['rotations']:

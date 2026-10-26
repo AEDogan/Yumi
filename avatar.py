@@ -20,11 +20,6 @@ from OpenGL.GL import *
 from OpenGL.GLU import gluLookAt, gluNewQuadric, gluPerspective, gluSphere
 
 
-PALETTES = {
-    'Sakura': {'hair': (.42,.28,.39), 'highlight': (.60,.40,.54), 'dress': (.92,.49,.67), 'trim': (1,.93,.97), 'shoe': (.47,.33,.44)},
-    'Midnight': {'hair': (.16,.16,.27), 'highlight': (.39,.35,.62), 'dress': (.46,.38,.77), 'trim': (.94,.90,1), 'shoe': (.23,.21,.37)},
-    'Mint': {'hair': (.20,.31,.30), 'highlight': (.39,.62,.55), 'dress': (.38,.73,.62), 'trim': (.92,1,.97), 'shoe': (.25,.43,.39)},
-}
 SKIN = (1.0,.85,.78)
 WHITE = (1,1,1)
 
@@ -82,7 +77,8 @@ class AvatarView(QOpenGLWidget):
             import os
             if os.environ.get('YUMI_DESKTOP_RENDERER','three-vrm')=='legacy':self.setAttribute(Qt.WidgetAttribute.WA_AlwaysStackOnTop)
         self.setMinimumHeight(300)
-        self._skin = 'Sakura'
+        self._skin = None
+        self.clippy=None;self.clippy_state='idle'
         self.model=None
         self.furniture=None;self.previous_chair=None
         self.model_error=None
@@ -140,7 +136,11 @@ class AvatarView(QOpenGLWidget):
 
     @skin.setter
     def skin(self,key):
+        from skins import valid_skin,default_skin
+        if not valid_skin(key):key=default_skin()
         if key==self._skin:return
+        from clippy_character import ClippyCharacter
+        clippy=ClippyCharacter() if key=='Clippy' else None
         path=skin_path(key)
         model=VRMModel(path) if path else None
         if key.startswith('vrm:') and path is None:raise ValueError('Seçilen VRM modeli bulunamadı.')
@@ -148,6 +148,7 @@ class AvatarView(QOpenGLWidget):
             self.makeCurrent()
             if self.furniture:self.furniture.release();self.furniture=None
             self.model.release();self.doneCurrent()
+        self.clippy=clippy
         self.model=model;self._skin=key;self.model_error=None;self.reported_runtime_error=None
         self.update()
 
@@ -189,6 +190,13 @@ class AvatarView(QOpenGLWidget):
         t=time.perf_counter()-self.clock
         now=time.perf_counter();dt=min(.10,now-self.frame_clock);self.frame_clock=now
         self.simulationStep.emit(dt)
+        if self.clippy is not None:
+            if self.three_desktop:self.three_desktop.begin()
+            self.clippy.advance('speaking' if self.speaking else self.clippy_state)
+            from PySide6.QtGui import QPainter
+            painter=QPainter(self)
+            self.clippy.draw(painter,self.rect());painter.end()
+            return
         if self.pose not in ('idle','walk','wave','listen','clip'):self.pose='idle'
         scene=self.furniture
         three_ready=self.three_desktop.begin() if self.three_desktop else False
@@ -279,65 +287,8 @@ class AvatarView(QOpenGLWidget):
                     glTranslatef(0,0,height);gluDisk(self.quad,0.,radius,20,1);glPopMatrix()
         if self.model and three_ready:
             self.three_desktop.submit(np.asarray(glGetDoublev(GL_MODELVIEW_MATRIX),float).T)
+            # Keep the native model until the new renderer has an actual frame.
+            if not self.three_desktop.delivered:self.model.draw()
         elif self.model:self.model.draw()
-        else:self._avatar(t)
         glPopMatrix()
         if scene and scene.done:scene.release();self.furniture=None
-
-
-
-
-
-
-
-    def _avatar(self,t):
-        p=PALETTES[self.skin]
-        walk=self.pose=='walk';wave=self.pose=='wave'
-        glTranslatef(0,.009*math.sin(t*1.8),0)
-        joints=self.rig.sample(t,self.pose,0.)
-        for side,label in [(-1,'left'),(1,'right')]:
-            hip,knee,ankle=(joints[label+name] for name in ('UpperLeg','LowerLeg','Foot'))
-            segment(self.quad,SKIN,hip,knee,.115)
-            sphere(self.quad,SKIN,knee,(.115,.115,.115))
-            segment(self.quad,SKIN,knee,ankle,.10)
-            sphere(self.quad,p['trim'],ankle+(0,.04,0),(.12,.10,.12))
-            sphere(self.quad,p['shoe'],ankle+(0,-.025,.10),(.18,.12,.25))
-        # Dress and collar
-        sphere(self.quad,p['dress'],(0,1.78,0),(.50,.60,.34))
-        sphere(self.quad,p['dress'],(0,1.23,0),(.38,.18,.29))
-        glPushMatrix(); glTranslatef(0,1.17,0); color(p['dress'])
-        glRotatef(90,1,0,0)
-        from OpenGL.GLU import gluCylinder
-        gluCylinder(self.quad,.38,.66,.50,24,1)
-        glPopMatrix()
-        sphere(self.quad,p['trim'],(0,2.13,.25),(.24,.15,.10))
-        sphere(self.quad,p['trim'],(0,1.79,.34),(.12,.21,.05))
-        sphere(self.quad,p['highlight'],(0,1.70,.39),(.07,.07,.05))
-        for side,label in [(-1,'left'),(1,'right')]:
-            shoulder,elbow,wrist=(joints[label+name] for name in ('UpperArm','LowerArm','Hand'))
-            segment(self.quad,p['dress'],shoulder,elbow,.155)
-            sphere(self.quad,p['trim'],elbow,(.13,.09,.13))
-            segment(self.quad,SKIN,elbow,wrist,.085)
-            sphere(self.quad,SKIN,wrist,(.10,.13,.08))
-        # Head, face and stylized hair
-        glPushMatrix(); glTranslatef(*joints["head"])
-        glRotatef(math.sin(t*.9)*3,0,0,1)
-        sphere(self.quad,SKIN,(0,.06,0),(.67,.63,.54))
-        for side in [-1,1]:
-            sphere(self.quad,SKIN,(side*.64,.02,0),(.11,.18,.11))
-            # White, iris and highlight all sit toward camera (+Z).
-            blink=.12 if math.sin(t*1.31)>.996 else 1
-            sphere(self.quad,WHITE,(side*.28,.04,.47),(.18,.22*blink,.07))
-            sphere(self.quad,(.19,.16,.29),(side*.28,.025,.528),(.12,.16*blink,.055))
-            sphere(self.quad,WHITE,(side*.24,.10,.57),(.037,.045*blink,.020))
-            sphere(self.quad,(.95,.61,.64),(side*.47,-.17,.43),(.12,.047,.025))
-            sphere(self.quad,p['hair'],(side*.59,-.27,-.04),(.21,.55,.29))
-            sphere(self.quad,p['highlight'],(side*.28,.38,.42),(.32,.24,.19))
-            sphere(self.quad,p['hair'],(side*.65,-.58,-.21),(.22,.49,.30))
-            sphere(self.quad,p['trim'],(side*.63,-.15,0),(.10,.06,.09))
-        sphere(self.quad,(.66,.32,.43),(0,-.27,.53),(.086,.035+abs(math.sin(t*13))*.045 if self.speaking else .035,.026))
-        sphere(self.quad,p['hair'],(0,.42,-.08),(.74,.50,.59))
-        sphere(self.quad,p['hair'],(0,.48,.49),(.29,.19,.15))
-        sphere(self.quad,p['trim'],(.50,.61,.38),(.13,.06,.06))
-        glPopMatrix()
-

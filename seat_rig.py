@@ -99,6 +99,20 @@ class SeatedRig:
             physics._rotate_subtree(world,a,aim(knee-hip,new_knee-hip))
             physics._rotate_subtree(world,b,aim(world[c,:3,3]-world[b,:3,3],new_foot-world[b,:3,3]))
             physics._rotate_subtree(world,c,foot_rotation@np.linalg.inv(world[c,:3,:3]))
+        # Foot skinning can include shin weights: preserving ankle rotation
+        # alone does not preserve the rendered sole height after bending knees.
+        for _ in range(4):
+            for side in ('left','right'):
+                gap=float(model.ground.sample(world,side)[:,1].min())
+                if abs(gap)<.0005:continue
+                a,b,c=[d.bones[side+p] for p in ('UpperLeg','LowerLeg','Foot')]
+                hip,knee,foot=[world[n,:3,3].copy() for n in (a,b,c)]
+                orientation=world[c,:3,:3].copy()
+                target=foot+d.flip.T@np.array([0.,-gap/d.scale,0.])
+                middle,end=ik(hip,target,np.linalg.norm(knee-hip),np.linalg.norm(foot-knee),d.flip.T@np.array([0.,0.,1.]),145)
+                physics._rotate_subtree(world,a,aim(knee-hip,middle-hip))
+                physics._rotate_subtree(world,b,aim(world[c,:3,3]-world[b,:3,3],end-world[b,:3,3]))
+                physics._rotate_subtree(world,c,orientation@np.linalg.inv(world[c,:3,:3]))
         # A small forward lean transfers weight while lowering/rising; the
         # settled lounge pose has a modest supported recline.
         spine=d.bones.get('spine');lean=.14*math.sin(math.pi*weight)-(.08 if self.mode=='lounge' else 0.)*weight
@@ -112,7 +126,11 @@ class SeatedRig:
                 a,b,c=[d.bones[side+p] for p in ('UpperArm','LowerArm','Hand')]
                 shoulder,elbow,hand=[world[n,:3,3].copy() for n in (a,b,c)];hand_rotation=world[c,:3,:3].copy()
                 sign=1 if canonical(a)[0]>=canonical(hips)[0] else -1
-                goal=np.array([canonical(hips)[0]+sign*f.width*.16,f.height+f.padding*2+.06,f.upper*.50])
+                # Chair depth is measured from its pivot, while avatars can
+                # have authored torso offsets. Keep the lap in front of the
+                # actual shoulder throughout lowering and rising.
+                shoulder_canonical=canonical(a)
+                goal=np.array([canonical(hips)[0]+sign*f.width*.16,f.height+f.padding*2+.06,shoulder_canonical[2]+f.upper*.50])
                 if self.mode=='work' and hasattr(self,'keyboard_target'):
                     goal=self.keyboard_target.copy();goal[0]+=sign*self.hand_spacing
                 selected=(model.conversation.variant%2==0)==(side=='left')
@@ -135,7 +153,7 @@ class SeatedRig:
                 target=canonical(c)*(1-weight)+goal*weight;target=d.flip.T@(target/d.scale+d.origin)
                 upper=float(np.linalg.norm(elbow-shoulder));lower=float(np.linalg.norm(hand-elbow))
                 new_elbow,new_hand=ik(shoulder,target,upper,lower,d.flip.T@pole,135)
-                target_rotation=aim(d.rest[b,:3,3]-d.rest[a,:3,3],new_elbow-shoulder)@d.rest[a,:3,:3]
+                target_rotation=aim(elbow-shoulder,new_elbow-shoulder)@world[a,:3,:3]
                 physics._rotate_subtree(world,a,target_rotation@np.linalg.inv(world[a,:3,:3]))
                 parent=world[d.parents[a],:3,:3]
                 bounded=parent@limit_rotation(d.local[a][:3,:3],np.linalg.solve(parent,world[a,:3,:3]),155.)

@@ -31,7 +31,7 @@ def native_preferences():
         profile=saved.get('voice_profiles',{}).get(saved.get('skin'),{})
         voice=profile.get('speech_voice',saved.get('speech_voice',''))
         voice=voice.split(':',1)[1] if voice.startswith('gemini-live:') else 'Kore'
-        if voice not in ('Kore','Puck','Charon','Aoede','Fenrir'):voice='Kore'
+        if voice not in __import__('voice_profiles').GEMINI_VOICE_NAMES:voice='Kore'
         return voice,str(profile.get('name','Yumi')).strip() or 'Yumi'
     except (OSError,ValueError,TypeError,AttributeError):return 'Kore','Yumi'
 def audio_route(device,direction):
@@ -176,7 +176,7 @@ def main():
     p.add_argument('--history-stdin',action='store_true',help=argparse.SUPPRESS)
     p.add_argument('--standby',action='store_true',help=argparse.SUPPRESS)
     p.add_argument('--microphone',default='Otomatik')
-    p.add_argument('--voice',choices=['Kore','Puck','Charon','Aoede','Fenrir']);p.add_argument('--name')
+    p.add_argument('--voice',choices=__import__('voice_profiles').GEMINI_VOICE_NAMES);p.add_argument('--name')
     p.add_argument('--input-device',type=int);p.add_argument('--output-device',type=int);p.add_argument('--seconds',type=int,default=120);p.add_argument('--report')
     a=p.parse_args()
     a.history=[]

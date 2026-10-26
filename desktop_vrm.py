@@ -51,13 +51,13 @@ class DesktopVRM:
         if self.inflight and time.perf_counter()-self.last>(5 if self.delivered else 20):
             self._failed('Çizici yanıt süresi aşıldı.');return False
         geometry=self.host.geometry() if self.display.parentWidget() is self.host.parentWidget() else self.host.rect()
-        if (self.display.geometry()!=geometry or self.display.isHidden()) and not self.present_pending:
+        if self.delivered and (self.display.geometry()!=geometry or self.display.isHidden()) and not self.present_pending:
             self.present_pending=True;QTimer.singleShot(0,self._present)
         self.props=[];self.pole_frame=None
         return self.ready
     def _present(self):
         self.present_pending=False
-        if self.disposed or self.failed or self.path is None or self.paused or not self.host.isVisible():return
+        if self.disposed or self.failed or self.path is None or self.paused or not self.delivered or not self.host.isVisible():return
         geometry=self.host.geometry() if self.display.parentWidget() is self.host.parentWidget() else self.host.rect()
         self.display.setGeometry(geometry);self.display.show();self.display.raise_()
     def pole(self,point,height,radius,visible,matrix):
@@ -107,6 +107,8 @@ class DesktopVRM:
         frame={'width':self.host.width(),'height':self.host.height(),'dpr':self.host.devicePixelRatioF(),'matrix':(matrix@canonical).T.ravel().tolist(),'nodes':local,
                'expressions':[[mesh,index,float(value)] for (mesh,index),value in getattr(model,'expression_weights',{}).items()],
                'props':self.props,'pole':self.pole_frame}
+        from seated_garment import patches
+        frame['garments']=patches(model)
         source='(()=>{window.yumiVRM.desktopFrame('+json.dumps(frame,separators=(',',':'),allow_nan=False)+');return JSON.stringify({status:window.yumiVRM.status,image:window.yumiVRM.capture()})})()'
         def done(value):
             if self.disposed or generation!=self.generation:return
@@ -119,6 +121,7 @@ class DesktopVRM:
                     image=QImage.fromData(base64.b64decode(data))
                     if image.isNull():raise ValueError('empty frame')
                     image.setDevicePixelRatio(frame['dpr']);self.display.setPixmap(QPixmap.fromImage(image));self.delivered=True
+                    self._present()
             except (ValueError,TypeError,KeyError):self._failed('Son poz görüntüsü okunamadı.')
         self.view.page.runJavaScript(source,done)
     def pause(self,paused):

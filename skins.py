@@ -1,19 +1,45 @@
 """Local VRM library. Removed models are preserved under work/removed-skins."""
 from pathlib import Path
-import shutil,hashlib
+import shutil,hashlib,json
 from vrm import load_data
 ROOT=Path(__file__).resolve().parent
 LIBRARY=ROOT/'skins'
+BUILTIN_ROOT=ROOT/'assets/characters'
+_manifest=BUILTIN_ROOT/'manifest.json'
+BUILTINS=json.loads(_manifest.read_text(encoding='utf-8'))['models'] if _manifest.is_file() else {}
+
+def is_builtin(key):
+    return key=='Clippy' or key in BUILTINS
+
+def default_skin():
+    preferred='vrm:madjin-AvatarSample_A.vrm'
+    if skin_path(preferred):return preferred
+    return next((key for key in BUILTINS if skin_path(key)), 'Clippy')
+
+def valid_skin(key):
+    return isinstance(key,str) and (key=='Clippy' or skin_path(key) is not None)
 
 def skin_path(key):
     if not key.startswith('vrm:'):return None
     name=key[4:]
     if Path(name).name!=name or Path(name).suffix.lower()!='.vrm':return None
-    path=LIBRARY/name
-    return path if path.is_file() else None
+    path=(BUILTIN_ROOT/name) if key in BUILTINS else (LIBRARY/name)
+    if not path.is_file():return None
+    if key not in BUILTINS:
+        from model_packages import approved_model
+        if not approved_model(path):return None
+    return path
 
 def default_name(key):
-    if not key.startswith('vrm:'):return key if key in ('Sakura','Midnight','Mint') else 'Yumi'
+    from character_names import NAMES
+    if key.startswith('vrm:') and key not in BUILTINS:
+        from model_packages import approved_model
+        entry=approved_model(LIBRARY/key[4:]) if Path(key[4:]).name==key[4:] else None
+        if entry:return entry['name']
+    if key in NAMES:return NAMES[key]
+    if key=='Clippy':return 'Clippy'
+    if key in BUILTINS:return BUILTINS[key]['name']
+    if not key.startswith('vrm:'):return 'Yumi'
     path=skin_path(key)
     if path:
         try:
@@ -24,46 +50,46 @@ def default_name(key):
     return 'İsimsiz karakter'
 
 def available(settings=None):
-    entries=[(name,name) for name in ('Sakura','Midnight','Mint')]
+    entries=[(item['name'],key) for key,item in BUILTINS.items() if skin_path(key)]
+    entries.append(('Clippy','Clippy'))
     if LIBRARY.exists():
         for path in sorted(LIBRARY.glob('*.vrm')):
             try:
                 key='vrm:'+path.name
-                entries.append((default_name(key),key))
+                if skin_path(key):entries.append((default_name(key),key))
             except Exception:continue
-    if settings is not None:
-        profiles=settings.get('voice_profiles',{})
-        labels=[]
-        for fallback,key in entries:
-            saved=profiles.get(key,{})
-            if not isinstance(saved,dict):saved={}
-            name=str(saved.get('name') or '').strip() or fallback
-            labels.append((name,key))
-        return labels
-    return entries
+    return [(default_name(key),key) for _,key in entries]
+
+def package_group(key):
+    if key=='Clippy':return 'retro'
+    if key in BUILTINS:return 'anime'
+    if isinstance(key,str) and key.startswith('vrm:') and Path(key[4:]).name==key[4:]:
+        from model_packages import approved_model
+        entry=approved_model(LIBRARY/key[4:])
+        if entry:return entry.get('group','anime')
+    return None
+
+def grouped_available(settings=None):
+    from model_packages import GROUPS
+    entries=available(settings)
+    return [(title,[(name,key) for name,key in entries if package_group(key)==group])
+            for group,title in GROUPS.items()]
 
 def existing_model_key(source):
     source=Path(source).resolve()
     if not source.is_file():return None
     digest=hashlib.sha256(source.read_bytes()).digest()
-    for path in LIBRARY.glob('*.vrm'):
+    for path in [*(BUILTIN_ROOT/key[4:] for key in BUILTINS),*LIBRARY.glob('*.vrm')]:
         if hashlib.sha256(path.read_bytes()).digest()==digest:return 'vrm:'+path.name
     return None
 
 def add_model(source):
-    source=Path(source).resolve()
-    if source.suffix.lower()!='.vrm':raise ValueError('Yalnız .vrm karakter dosyaları destekleniyor.')
-    load_data(str(source))
-    LIBRARY.mkdir(exist_ok=True)
-    content=source.read_bytes();digest=hashlib.sha256(content).digest()
-    for path in LIBRARY.iterdir():
-        if path.suffix.lower()!='.vrm':continue
-        if hashlib.sha256(path.read_bytes()).digest()==digest:return 'vrm:'+path.name
-    name=source.stem;extension=source.suffix.lower();target=LIBRARY/(name+extension);number=2
-    while target.exists():target=LIBRARY/(name+'-'+str(number)+extension);number+=1
-    target.write_bytes(content);return 'vrm:'+target.name
+    from model_packages import install_package
+    return install_package(source)
+
 
 def remove_model(key):
+    if is_builtin(key):raise ValueError('Yerleşik karakterler kaldırılamaz.')
     path=skin_path(key)
     if path is None:return
     target_dir=ROOT/'work/removed-skins';target_dir.mkdir(parents=True,exist_ok=True)

@@ -77,7 +77,7 @@ class HairSprings:
             scalp.extend(nodes);lengths.append(length)
         self.hair_nodes=set(scalp)
         self.short_hair_nodes=set(scalp) if lengths and float(np.median(lengths))<.17 else set()
-        self.cloth_nodes=set()
+        self.cloth_nodes=set();self.skirt_nodes=set()
         for group,nodes,kind in self.chains:
             # Authored flexible chains attached below the head share the cloth
             # stability profile. Cape/ribbon names vary across imported rigs;
@@ -87,7 +87,9 @@ class HairSprings:
             humanoid=set(data.bones.values())
             while ancestor in data.parents and ancestor not in humanoid:
                 ancestor=data.parents[ancestor]
-            if ancestor in humanoid and ancestor!=head:self.cloth_nodes.update(nodes)
+            if ancestor in humanoid and ancestor!=head:
+                self.cloth_nodes.update(nodes)
+                if ancestor in {data.bones.get(k) for k in ('hips','leftUpperLeg','rightUpperLeg')}:self.skirt_nodes.update(nodes)
         self.descendants={}
         def collect(node):
             result=[]
@@ -109,6 +111,8 @@ class HairSprings:
         self.cache_slots={n:i for i,n in enumerate(self.simulated_nodes)}
         self.backend='legacy' if os.environ.get('YUMI_VRM_RUNTIME')=='legacy' else 'three-vrm'
         self.runtime=None;self.runtime_error=None;self.runtime_attempted=False
+        from secondary_contacts import SecondaryContacts
+        self.secondary_contacts=SecondaryContacts(self)
     def apply(self,t,world):
         if self.backend=='three-vrm':
             self._apply_runtime(t,world);return
@@ -148,7 +152,9 @@ class HairSprings:
                 from three_vrm_runtime import ThreeVRMSprings
                 self.runtime=ThreeVRMSprings(self.data)
                 self.runtime_finalizer=weakref.finalize(self,self.runtime.close)
-            self.runtime.apply(t,world)
+            self.runtime.apply(t,world,external_velocity=self.external_velocity,hair_nodes=self.hair_nodes,cloth_nodes=self.cloth_nodes,skirt_nodes=self.skirt_nodes)
+            self.external_velocity*=np.exp(-max(0.,min(.05,getattr(self.runtime,"frame_dt",1/60)))/.18)
+            self.secondary_contacts.solve(world)
             environment=getattr(self.physics,'environment',None)
             if environment is not None:environment.solve_springs(world,self)
         except (RuntimeError,OSError,ValueError) as error:
@@ -197,7 +203,8 @@ class HairSprings:
             for chain_index,node in enumerate(nodes):
                 short_hair=node in self.short_hair_nodes
                 cloth=node in self.cloth_nodes
-                node_drag=max(drag,.78) if cloth else max(drag,.70) if short_hair else drag
+                skirt=node in self.skirt_nodes
+                node_drag=max(drag,.90) if skirt else max(drag,.78) if cloth else max(drag,.70) if short_hair else drag
                 environment=getattr(self.physics,'environment',None)
                 if node in self.hair_nodes and environment is not None and environment.scene.phase=='seated':
                     node_drag=max(node_drag,.90)
@@ -211,7 +218,7 @@ class HairSprings:
                         tip=movement[:3,:3]@tip+movement[:3,3];previous=movement[:3,:3]@previous+movement[:3,3]
                 restoring=min(.7,node_stiffness*dt*12)
                 rest_target=rest_tip
-                predicted=tip+(tip-previous)*(1-node_drag)+(rest_target-tip)*restoring+force-self.external_velocity*dt*(.08 if cloth else inertia)
+                predicted=tip+(tip-previous)*(1-node_drag)+(rest_target-tip)*restoring+force-self.external_velocity*dt*(.04 if skirt else .08 if cloth else inertia)
                 direction=predicted-anchor;predicted=anchor+direction/max(math.sqrt(float(direction@direction)),1e-9)*length
                 # Vector broad phase avoids visiting every authored collider
                 # in Python for every spring node, even when none is touched.
@@ -240,3 +247,4 @@ class HairSprings:
         self.centers={node:frame for node,(frame,_) in center_frames.items()}
         environment=getattr(self.physics,'environment',None)
         if environment is not None:environment.solve_springs(world,self)
+

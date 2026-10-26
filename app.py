@@ -29,7 +29,7 @@ from avatar import AvatarView
 from overlay import DesktopCharacter
 from system_audio import SystemAudio
 from voice_profiles import profile,apply_profile,VOICES,OPENAI_VOICES,character_name,wake_command
-from skins import available as available_skins, add_model, remove_model, skin_path
+from skins import available as available_skins, add_model, remove_model, skin_path, default_skin, valid_skin, is_builtin
 from backend import Assistant, local_transcribe, local_speech, login, login_status, OFFLINE_MESSAGE, is_offline_error, offline_warning_speech, prepare_offline_warning
 from platform_win import ActivityCounter, GlobalHotkey, protect, unprotect
 
@@ -44,7 +44,7 @@ os.environ['YUMI_DATA_DIR']=str(DATA_DIR)
 SETTINGS_FILE = DATA_DIR / 'settings.json'
 KEY_FILE = DATA_DIR / 'key.dat'
 GEMINI_KEY_FILE = DATA_DIR / 'gemini-key.dat'
-DEFAULTS = {'theme':'ios','panel_opacity':94,'gemini_model':'gemini-3.5-flash-lite','speech_voice':'gemini-live:Kore','skin':'Sakura','voice':'coral','always_listen':False,'name_wake_enabled':False,'roam':True,'mic_device':'Otomatik','model':'gpt-5.4-mini','provider':'gemini','city':'','size':100}
+DEFAULTS = {'theme':'ios','panel_opacity':94,'gemini_model':'gemini-3.5-flash-lite','speech_voice':'gemini-live:Kore','skin':default_skin(),'voice':'coral','always_listen':False,'name_wake_enabled':False,'roam':True,'mic_device':'Otomatik','model':'gpt-5.4-mini','provider':'gemini','city':'','size':100}
 
 
 DEFAULTS.update(daily_scenarios=True,music_family='unknown',music_auto=True)
@@ -55,7 +55,7 @@ def load_settings():
         settings['name_wake_enabled']=bool(saved.get('name_wake_enabled',saved.get('always_listen',False)))
         if settings.get('gemini_model') in ('gemini-flash-lite-latest','gemini-flash-latest','gemini-3.6-flash'):
             settings['gemini_model']=DEFAULTS['gemini_model']
-        if settings['skin'].startswith('vrm:') and skin_path(settings['skin']) is None:settings['skin']='Sakura'
+        if not valid_skin(settings.get('skin')):apply_profile(settings,default_skin())
         native_voices={key for _,key,_ in VOICES}
         if settings.get('speech_voice') not in native_voices:settings['speech_voice']='gemini-live:Kore'
         for saved in settings.get('voice_profiles',{}).values():
@@ -64,6 +64,8 @@ def load_settings():
             if isinstance(saved,dict) and str(saved.get('name') or '').strip():saved['name']=migrated_default_name(saved['name'])
         settings['speech_voice']=profile(settings)['speech_voice']
         settings['always_listen']=False
+        from character_names import migrate
+        if migrate(settings):save_settings(settings)
         return settings
     except (OSError, ValueError):
         return DEFAULTS.copy()
@@ -327,24 +329,23 @@ class SettingsDialog(QDialog):
                 self.mic_device.setItemData(self.mic_device.count()-1,name,Qt.ItemDataRole.ToolTipRole)
         except Exception:pass
         self.mic_device.setCurrentIndex(max(0,self.mic_device.findData(parent.settings['mic_device'])));sound.addWidget(self.mic_device)
-        self.always=QCheckBox('Karakter adıyla çağır');self.always.setToolTip('Yalnız etkin karakterin çağrı adı yerelde algılanır. Beklerken ortam sesi Gemini’ye gönderilmez. Adı söyleyip Dinliyor durumunu bekle.');self.always.setChecked(parent.settings.get('name_wake_enabled',False));sound.addWidget(self.always)
-        character.addWidget(QLabel('Karakter adı · seslenme sözcüğü'));self.character_name=QLineEdit(character_name(parent.settings));self.character_name.setMaxLength(30);self.character_name.textEdited.connect(self.rename_character);character.addWidget(self.character_name)
-        character.addWidget(QLabel('Seslenme yazımı · isteğe bağlı (ör. Klara)'));self.wake_alias=QLineEdit(profile(parent.settings).get('wake_alias',''));self.wake_alias.setMaxLength(30);self.wake_alias.setToolTip('Bu modele özel Türkçe söyleniş. Boş bırakılırsa karakter adı kullanılır.');character.addWidget(self.wake_alias)
+        self.always=QCheckBox('Model adıyla sesli sohbet başlat');self.always.setToolTip('Yalnız etkin karakterin çağrı adı yerelde algılanır. Beklerken ortam sesi Gemini’ye gönderilmez. Adı söyleyip Dinliyor durumunu bekle.');self.always.setChecked(parent.settings.get('name_wake_enabled',False))
+        self.character_drafts={};self.editing_skin=parent.settings['skin']
+        character.addWidget(QLabel('Model kütüphanesi'));self.skin=QComboBox();character.addWidget(self.skin);self.fill_skins(parent.settings['skin'])
+        row=QHBoxLayout();remove=QPushButton('Kaldır');self.remove_skin_button=remove;remove.setToolTip('Seçili modeli kaldır');remove.clicked.connect(self.remove_skin);row.addWidget(remove);character.addLayout(row)
+        inspect=QPushButton('Modeli önizle');inspect.clicked.connect(self.inspect_skin);character.addWidget(inspect);character.addWidget(self.always)
         voice_button=QPushButton('Konuşma sesini değiştir');voice_button.clicked.connect(lambda:self.tabs.setCurrentIndex(1));character.addWidget(voice_button)
         self.character_drafts={};self.editing_skin=parent.settings['skin']
         self.adult_character=QCheckBox('Bu karakterin 18 yaşından büyük olduğunu doğruluyorum');self.adult_character.setChecked(bool(current_profile.get('adult',False)))
-        character.addWidget(QLabel('Model kütüphanesi'));self.skin=QComboBox();character.addWidget(self.skin);self.fill_skins(parent.settings['skin'])
-        row=QHBoxLayout();add=QPushButton('Model ekle');add.setToolTip('VRM modelleri ekle');add.clicked.connect(self.add_skin);row.addWidget(add);remove=QPushButton('Kaldır');remove.setToolTip('Seçili modeli kaldır');remove.clicked.connect(self.remove_skin);row.addWidget(remove);character.addLayout(row)
-        inspect=QPushButton('Modeli önizle');inspect.clicked.connect(self.inspect_skin);character.addWidget(inspect)
         self.skin.currentIndexChanged.connect(self.load_character_voice)
         self.skin_info=QLabel();self.skin_info.setWordWrap(True);character.addWidget(self.skin_info);self.skin.currentIndexChanged.connect(self.describe_skin);self.describe_skin()
         self.size_label=QLabel();character.addWidget(self.size_label);self.size=QSlider(Qt.Orientation.Horizontal);self.size.setRange(50,180);self.size.setValue(parent.settings['size']);character.addWidget(self.size)
         self.size.valueChanged.connect(lambda value:self.size_label.setText(f'Karakter boyutu · %{value}'));self.size_label.setText(f"Karakter boyutu · %{parent.settings['size']}")
-        self.profile_status=QLabel('Ad, seslenme, ses ve boyut tercihleri bu modele özel otomatik kaydedilir.');self.profile_status.setWordWrap(True);character.addWidget(self.profile_status)
-        self.character_name.editingFinished.connect(self._save_character_profile);self.wake_alias.editingFinished.connect(self._save_character_profile)
+        self.profile_status=QLabel('Ses ve boyut tercihleri bu modele özel otomatik kaydedilir.');self.profile_status.setWordWrap(True);character.addWidget(self.profile_status)
         self.voice_gender.activated.connect(self._save_character_profile);self.speech_voice.activated.connect(self._save_character_profile);self.voice.activated.connect(self._save_character_profile)
         self.adult_character.clicked.connect(self._save_character_profile);self.size.sliderReleased.connect(self._save_character_profile)
         note=QLabel('Masaüstünde sağ tık > Model seç ile kayıtlı modeller arasında geçebilirsin. Fare tekerleği boyutu değiştirir.');note.setWordWrap(True);character.addWidget(note)
+        add=QPushButton('Model paketi ekle');add.setToolTip('Onaylı Yumi model paketini ekle');add.clicked.connect(self.add_skin);character.addWidget(add)
         from windows_startup import enabled as startup_enabled
         self.windows_startup=QCheckBox('Windows açıldığında Yumi’yi başlat');self.windows_startup.setChecked(startup_enabled());behavior.addWidget(self.windows_startup)
         self.roam=QCheckBox('Görev çubuğu boyunca gezinsin');self.roam.setChecked(parent.settings['roam']);behavior.addWidget(self.roam)
@@ -389,23 +390,15 @@ class SettingsDialog(QDialog):
             if not self._save_character_profile():
                 self.skin.blockSignals(True);self.skin.setCurrentIndex(self.skin.findData(self.editing_skin));self.skin.blockSignals(False);return
         saved=self.character_drafts.get(selected,profile(self.owner.settings,selected));self.editing_skin=selected
-        self.wake_alias.setText(saved.get('wake_alias',''));self.character_name.setText(saved.get('name','Yumi'));self.voice_gender.setCurrentIndex(max(0,self.voice_gender.findData(saved['gender'])));self.fill_voices(saved['speech_voice']);self.voice.setCurrentText(saved['voice']);self.voice.setVisible(self.speech_voice.currentData()=='openai-tts');self.adult_character.setChecked(bool(saved.get('adult',False)))
+        self.voice_gender.setCurrentIndex(max(0,self.voice_gender.findData(saved['gender'])));self.fill_voices(saved['speech_voice']);self.voice.setCurrentText(saved['voice']);self.voice.setVisible(self.speech_voice.currentData()=='openai-tts');self.adult_character.setChecked(bool(saved.get('adult',False)))
         if hasattr(self,'size'):self.size.setValue(int(saved.get('size',100)))
-
-    def rename_character(self,name):
-        key=self.skin.currentData()
-        if key:
-            self.character_drafts[key]=self.character_values()
-            self.skin.setItemText(self.skin.currentIndex(),name.strip() or 'İsimsiz karakter')
 
     def character_values(self):
         saved=profile(self.owner.settings,self.editing_skin)
-        return {**saved,'name':self.character_name.text().strip() or saved['name'],'wake_alias':self.wake_alias.text().strip(),'gender':self.voice_gender.currentData(),'speech_voice':self.speech_voice.currentData(),'voice':self.voice.currentText(),'adult':self.adult_character.isChecked(),'size':self.size.value()}
+        return {**saved,'name':saved['name'],'wake_alias':'','gender':self.voice_gender.currentData(),'speech_voice':self.speech_voice.currentData(),'voice':self.voice.currentText(),'adult':self.adult_character.isChecked(),'size':self.size.value()}
 
     def _save_character_profile(self,*args):
         if not getattr(self,'editing_skin',None) or not hasattr(self,'size'):return True
-        if not self.character_name.text().strip():
-            self.profile_status.setText('Karakter adı boş olamaz; kayıtlı ad korunuyor.');return False
         values=self.character_values();self.character_drafts[self.editing_skin]=values
         old=self.owner.settings
         profiles={**old.get('voice_profiles',{}),**self.character_drafts}
@@ -432,18 +425,26 @@ class SettingsDialog(QDialog):
     def fill_skins(self,selected):
         self.skin.blockSignals(True)
         self.skin.clear()
-        for title,key in available_skins({**self.owner.settings,'voice_profiles':{**self.owner.settings.get('voice_profiles',{}),**self.character_drafts}}):self.skin.addItem(title,key)
-        index=self.skin.findData(selected);self.skin.setCurrentIndex(max(0,index))
+        from skins import grouped_available
+        for group,entries in grouped_available(self.owner.settings):
+            self.skin.addItem(group if entries else group+' · henüz eklenmedi',None)
+            self.skin.model().item(self.skin.count()-1).setEnabled(False)
+            for title,key in entries:self.skin.addItem(title,key)
+        index=self.skin.findData(selected);self.skin.setCurrentIndex(index if index>=0 else next((i for i in range(self.skin.count()) if self.skin.itemData(i)), -1))
         self.skin.blockSignals(False)
         if hasattr(self,'skin_info'):self.load_character_voice(store_current=False)
 
     def describe_skin(self):
+        key=self.skin.currentData() or ''
+        self.remove_skin_button.setEnabled(bool(skin_path(key)) and not is_builtin(key))
+        self.remove_skin_button.setToolTip('Yerleşik karakter kaldırılamaz.' if is_builtin(key) else 'Seçili modeli kaldır')
         path=skin_path(self.skin.currentData() or '')
         if path:
             from vrm import load_data
             meta=load_data(str(path.resolve())).meta
             self.skin_info.setText('Yazar: '+str(meta.get('author',', '.join(meta.get('authors',[]))))+' · '+str(meta.get('format','VRM'))+' model · ticari kullanım: '+str(meta.get('commercialUssageName',meta.get('commercialUsage','belirtilmemiş'))))
-        else:self.skin_info.setText('Yerel dummy karakterin renk görünümü.')
+        elif self.skin.currentData()=='Clippy':self.skin_info.setText('Orijinal Microsoft Clippit · 43 animasyon · sesli sohbet · konuşma balonu yok.')
+        else:self.skin_info.setText('Karakter dosyası bulunamadı.')
 
     def inspect_skin(self):
         path=skin_path(self.skin.currentData() or '')
@@ -452,22 +453,23 @@ class SettingsDialog(QDialog):
         self.owner._push_page(ThreeVRMInspection(self.owner,path))
 
     def add_skin(self):
-        paths,_=QFileDialog.getOpenFileNames(self,'VRM modellerini ekle',str(Path.home()/'Downloads'),'VRM karakter (*.vrm)')
+        paths,_=QFileDialog.getOpenFileNames(self,'Model paketi ekle',str(Path.home()/'Downloads'),'Yumi model paketi (*.yumimodel)')
         from model_setup import import_models
         def completed(keys):
             if keys:
-                for key in keys:self.character_drafts[key]=dict(self.owner.settings['voice_profiles'][key])
+                for key in keys:self.character_drafts[key]=dict(profile(self.owner.settings,key))
                 self.fill_skins(keys[-1]);self.describe_skin()
         import_models(self.owner,paths,completed)
 
     def remove_skin(self):
         key=self.skin.currentData() or ''
-        if not key.startswith('vrm:'):return
+        if is_builtin(key) or not key.startswith('vrm:'):return
         try:
             if self.owner.settings['skin']==key:
-                self.owner.avatar.skin='Sakura';self.owner.overlay.avatar.skin='Sakura'
-                apply_profile(self.owner.settings,'Sakura');save_settings(self.owner.settings)
-            remove_model(key);self.fill_skins('Sakura');self.describe_skin()
+                fallback=default_skin()
+                self.owner.avatar.skin=fallback;self.owner.overlay.avatar.skin=fallback
+                apply_profile(self.owner.settings,fallback);save_settings(self.owner.settings)
+            remove_model(key);self.fill_skins(self.owner.settings['skin']);self.describe_skin()
         except Exception as error:self.owner.show_error('Model kaldırılamadı: '+str(error))
 
     def save_key(self):
@@ -1311,7 +1313,7 @@ class YumiWindow(QMainWindow):
 
     def _native_command(self,text):
         from avatar_commands import command_text
-        command=command_text(text,character_name(self.settings),profile(self.settings).get('wake_alias',''))
+        command=command_text(text,character_name(self.settings),'')
         if command:
             if self._start_skill_command(command,native=True):return
             result=self._local_command(command)
@@ -1395,11 +1397,12 @@ class YumiWindow(QMainWindow):
         self._sync_name_wake()
     def _sync_name_wake(self):
         if self.exiting:return
-        try:self.name_wake.configure(bool(self.settings.get('name_wake_enabled',False)),character_name(self.settings),paused=self.busy or bool(getattr(getattr(self,'native_audio',None),'listening',False)) or bool(getattr(getattr(self,'native_audio',None),'pending_activation',False)),wake_name=profile(self.settings).get('wake_alias',''),microphone=self.settings.get('mic_device','Otomatik'))
+        try:self.name_wake.configure(bool(self.settings.get('name_wake_enabled',False)),character_name(self.settings),paused=self.busy or bool(getattr(getattr(self,'native_audio',None),'listening',False)) or bool(getattr(getattr(self,'native_audio',None),'pending_activation',False)),wake_name='',microphone=self.settings.get('mic_device','Otomatik'))
         except Exception:self._wake_failed('Yerel çağrı adı dinlemesi açılamadı; mikrofon düğmesini kullanabilirsin.')
     def _wake_ready(self,name):
         if not self.busy:self.set_status(f'“{name}” diye seslen · Yalnız bu bilgisayarda')
     def _wake_called(self):
+        if not self.settings.get('name_wake_enabled',False):return
         if not self.busy:self._mic()
         else:self._sync_name_wake()
     def _wake_failed(self,message):
@@ -1436,6 +1439,19 @@ class YumiWindow(QMainWindow):
         else:
             self.avatar.conversation.position=self.player.position()/1000.
             self.avatar.conversation.duration=self.player.duration()/1000.
+        if self.settings.get('skin')=='Clippy':
+            if not getattr(self,'clippy_actions_stopped',False):
+                self.music_runtime.stop(suppress=False)
+                self.music_runtime.enabled=False;self.music_runtime._rest()
+                self.daily_director.cancel()
+                self.pending_avatar_command=None;self.voice_target=None;self.manual_pose=None
+                self.clippy_actions_stopped=True
+            self.move_animation.stop()
+            self.avatar.pose='idle';self.avatar.prop='none';self.avatar.hand_gesture=None
+            self.avatar.clippy_state=('thinking' if self.busy else 'listening' if getattr(getattr(self,'native_audio',None),'listening',False) else 'idle')
+            self.overlay.sync()
+            return
+        self.clippy_actions_stopped=False
         from voice_actions import music
         if now>=getattr(self,'gesture_until',0.):self.avatar.hand_gesture=None
         music(self,now)
@@ -1462,6 +1478,7 @@ class YumiWindow(QMainWindow):
         finally:self.in_render_movement=False
 
     def _roam(self):
+        if self.settings.get('skin')=='Clippy':return
         if getattr(getattr(self,'fullscreen_pause',None),'paused',False):return
         from action_transition import dispatch
         if dispatch(self):return

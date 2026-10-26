@@ -7,11 +7,18 @@ async def serve(session,args,stop,controls,feedback,device_factory,lease_factory
     end=time.monotonic()+args.seconds if args.seconds else float('inf')
     async def release():
         nonlocal device,sender,lease,listening
-        if sender:
-            sender.cancel();await asyncio.gather(sender,return_exceptions=True);sender=None
-        if device:device.close();device=None
-        if lease:lease.close();lease=None
-        listening=False
+        # Retire ownership first so a second cleanup cannot close the same
+        # failed device again or leave its microphone lease behind.
+        old_sender,old_device,old_lease=sender,device,lease
+        sender=device=lease=None;listening=False
+        try:
+            if old_sender:
+                old_sender.cancel();await asyncio.gather(old_sender,return_exceptions=True)
+        finally:
+            try:
+                if old_device:old_device.close()
+            finally:
+                if old_lease:old_lease.close()
     async def open_device(capture):
         nonlocal device,sender,lease,listening,idle
         await release()
@@ -55,4 +62,6 @@ async def serve(session,args,stop,controls,feedback,device_factory,lease_factory
                 await release()
             await asyncio.sleep(.05)
     finally:
-        await release();receiver.cancel();await asyncio.gather(receiver,return_exceptions=True)
+        try:await release()
+        finally:
+            receiver.cancel();await asyncio.gather(receiver,return_exceptions=True)

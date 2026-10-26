@@ -22,7 +22,7 @@ class DesktopCharacter(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);self.setWindowTitle('Yumi · Masaüstü karakteri')
         self.avatar=AvatarView(self,transparent=True);self.avatar.installEventFilter(self);self.installEventFilter(self)
         self.avatar.runtimeWarning.connect(owner.show_error)
-        self.avatar.skin=owner.settings.get('skin','Sakura')
+        self.avatar.skin=owner.settings.get('skin',__import__('skins').default_skin())
         self.bubble=QLabel(self);self.bubble.setWordWrap(True);self.bubble.setStyleSheet('background:#fff9ff;color:#624b74;border:1px solid #d6b9e3;border-radius:12px;padding:10px;font:12px "Segoe UI";')
         self.bubble.hide();self.set_scale(owner.settings.get('size',100))
         rect=QApplication.primaryScreen().availableGeometry();self.move(rect.right()-self.width()-30,rect.bottom()-self.height()+1)
@@ -96,6 +96,10 @@ class DesktopCharacter(QWidget):
         self.manually_placed=False;self.owner.settings['roam']=True;self.owner.last_user_action=0;self.update_hit_region();self.owner._roam()
     def select_skin(self,key):
         from app import save_settings
+        if key=='Clippy':
+            from voice_actions import stop
+            stop(self.owner)
+            self.owner.move_animation.stop()
         try:
             self.owner.avatar.skin=key
             self.avatar.skin=key
@@ -107,7 +111,7 @@ class DesktopCharacter(QWidget):
     def load_vrm(self):
         from pathlib import Path
         from skins import add_model
-        paths,_=QFileDialog.getOpenFileNames(self,'VRM modellerini ekle',str(Path.home()/'Downloads'),'VRM karakter (*.vrm)')
+        paths,_=QFileDialog.getOpenFileNames(self,'Model paketi ekle',str(Path.home()/'Downloads'),'Yumi model paketi (*.yumimodel)')
         from model_setup import import_models
         self.owner._show()
         import_models(self.owner,paths,lambda keys:self.select_skin(keys[-1]) if keys else None)
@@ -116,7 +120,7 @@ class DesktopCharacter(QWidget):
         # callouts obscure other applications and enlarge the click region.
         self.bubble.hide()
     def sync(self):
-        for name in ('walk_direction','walking_turn','pose','prop','skin','speaking','mouth_level','conversation','hand_gesture'):setattr(self.avatar,name,getattr(self.owner.avatar,name))
+        for name in ('walk_direction','walking_turn','pose','prop','skin','speaking','mouth_level','conversation','hand_gesture','clippy_state'):setattr(self.avatar,name,getattr(self.owner.avatar,name))
     def eventFilter(self,obj,event):
         if event.type()==QEvent.Type.MouseButtonDblClick:self.owner._show();return True
         if event.type()==QEvent.Type.MouseButtonPress:
@@ -158,16 +162,30 @@ class DesktopCharacter(QWidget):
     def menu(self):
         menu=self.build_menu();menu.exec(QCursor.pos())
     def build_menu(self):
+        from character_names import refresh
+        if refresh(self.owner.settings):
+            if hasattr(self.owner,'voice_capture'):
+                from voice_profiles import character_name
+                self.owner.voice_capture.wake_name=character_name(self.owner.settings)
+            if hasattr(self.owner,'_sync_name_wake'):self.owner._sync_name_wake()
         menu=QMenu(self);models=menu.addMenu('Model seç')
         menu.model_menu=models
-        from skins import available
-        for title,key in available(self.owner.settings):
-            action=models.addAction(title);action.setCheckable(True);action.setChecked(key==self.owner.settings['skin']);action.triggered.connect(lambda checked=False,k=key:self.select_skin(k))
+        from skins import grouped_available
+        for group,entries in grouped_available(self.owner.settings):
+            submenu=models.addMenu(group)
+            if not entries:submenu.addAction('Henüz eklenmedi').setEnabled(False)
+            for title,key in entries:
+                action=submenu.addAction(title);action.setCheckable(True);action.setChecked(key==self.owner.settings['skin']);action.triggered.connect(lambda checked=False,k=key:self.select_skin(k))
         menu.addAction('Yumi’yi aç',self.owner._show)
         from model_visibility import add_action
         add_action(menu,self.owner)
         menu.addAction('Ayarlar',self.owner._settings)
         menu.addAction('🏠 Akıllı Ev & Cihazlar',self.owner._open_smart_home)
+        if self.owner.settings.get('skin')=='Clippy':
+            animations=menu.addMenu('Clippy animasyonları')
+            for name in self.avatar.clippy.animations:
+                animations.addAction(name,lambda checked=False,n=name:self.avatar.clippy.play(n))
+            return menu
         def action(text):
             from voice_actions import execute
             answer=execute(self.owner,text)

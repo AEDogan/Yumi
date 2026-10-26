@@ -1,6 +1,6 @@
 // Persistent local transport. VRM0/1 interpretation and integration are upstream.
 import readline from 'node:readline';
-import { Object3D, Scene, Matrix4 } from 'three';
+import { Object3D, Scene, Matrix4, Vector3 } from 'three';
 import { VRMSpringBoneLoaderPlugin } from '@pixiv/three-vrm';
 
 const rigs = new Map();
@@ -45,7 +45,31 @@ async function handle(message) {
   nodes.forEach((node, i) => matrix.fromArray(message.local[i]).decompose(node.position, node.quaternion, node.scale));
   scene.updateMatrixWorld(true);
   if (message.reset) manager?.reset();
-  manager?.update(Math.min(Math.max(message.dt, 0), .05));
+  // Mouse dragging moves the native window, outside this skeleton's coordinates.
+  // Add that bounded inertial force to authored gravity for this integration only.
+  const force = new Vector3().fromArray(message.externalForce ?? [0,0,0]);
+  if (![force.x,force.y,force.z].every(Number.isFinite)) throw new Error('Invalid external force');
+  force.clampLength(0, .35);
+  const hairNodes=new Set(message.hairNodes??[]);
+  const clothNodes=new Set(message.clothNodes??[]);
+  const skirtNodes=new Set(message.skirtNodes??[]);
+  const saved=[];
+  try {
+    for (const joint of manager?.joints ?? []) {
+      const settings=joint.settings;
+      saved.push([settings,settings.gravityDir.clone(),settings.gravityPower,settings.dragForce]);
+      // Dampen garments independently; retain authored stiffness and length.
+      const cloth=clothNodes.has(joint.bone.userData.index)&&!hairNodes.has(joint.bone.userData.index);
+      const skirt=cloth&&skirtNodes.has(joint.bone.userData.index);
+      if(cloth)settings.dragForce=Math.max(settings.dragForce,skirt?.90:.8);
+      const combined=settings.gravityDir.clone().multiplyScalar(settings.gravityPower).addScaledVector(force,hairNodes.has(joint.bone.userData.index)?1.3:skirt?.15:cloth?.3:1);
+      settings.gravityPower=combined.length();
+      if(settings.gravityPower>0)settings.gravityDir.copy(combined).normalize();
+    }
+    manager?.update(Math.min(Math.max(message.dt, 0), .05));
+  } finally {
+    for(const [settings,direction,power,drag] of saved){settings.gravityDir.copy(direction);settings.gravityPower=power;settings.dragForce=drag;}
+  }
   return { rotations: indices.map(i => [i, nodes[i].quaternion.toArray()]) };
 }
 // Sequential requests: no concurrent updates of a shared skeleton.

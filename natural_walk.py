@@ -1,10 +1,11 @@
 """Reference-guided locomotion: support knee extension, low foot lift, relaxed arms."""
 import math
+from weakref import WeakKeyDictionary
 import numpy as np
 from motion import ik
 from vrm import aim
 class NaturalWalkClip:
- def __init__(self,source):self.source=source;self.duration=source.duration;self.neutral={};self.lifts={};self.speeds={};self.baked={}
+ def __init__(self,source):self.source=source;self.duration=source.duration;self.neutral=WeakKeyDictionary();self.lifts=WeakKeyDictionary();self.speeds=WeakKeyDictionary();self.baked=WeakKeyDictionary()
  def world(self,target,rotations,translation):
   world=np.empty_like(target.rest)
   for i in target.order:
@@ -44,7 +45,7 @@ class NaturalWalkClip:
    legs.append((a,b,c,hip,end,upper,lower,required,maximum))
   return legs
  def build_cache(self,target):
-  key=id(target);samples=[];raw=[]
+  key=target;samples=[];raw=[]
   for t in np.linspace(0,self.duration,96,endpoint=False):
    rotations,translation,_=self.source.pose(float(t),target,True);samples.append(rotations)
    legs=self.geometry(target,self.world(target,rotations,translation));heights=[leg[4][1] for leg in legs]
@@ -52,18 +53,20 @@ class NaturalWalkClip:
    raw.append(max(0.,min(.35,float(np.dot([leg[7] for leg in legs],weights)/sum(weights)))))
   offsets=np.arange(-6,7);weights=np.exp(-.5*(offsets/2.7)**2);weights/=sum(weights)
   self.lifts[key]=sum(np.roll(raw,int(offset))*weight for offset,weight in zip(offsets,weights))
+  from motion_reference import reference_pose
+  reference_local,_=reference_pose(self.source,target)
   neutral={}
   for side in ('left','right'):
    for part in ('Shoulder','UpperArm','LowerArm','Hand'):
     node=target.bones.get(side+part)
     if node is None or not all(node in frame for frame in samples):continue
     average=sum(frame[node] for frame in samples)/len(samples)
-    if part=='LowerArm':average=average*.30+target.local[node][:3,:3]*.70
+    if part=='LowerArm':average=average*.30+reference_local[node][:3,:3]*.70
     U,_,V=np.linalg.svd(average);neutral[node]=U@np.diag([1,1,np.linalg.det(U@V)])@V
   self.neutral[key]=neutral
  def solve_pose(self,t,target,loop=True):
   rotations,translation,expressions=self.source.pose(t,target,loop);original=self.world(target,rotations,translation)
-  key=id(target)
+  key=target
   if key not in self.lifts:self.build_cache(target)
   legs=self.geometry(target,original);phase=(t/self.duration)%1;index=phase*96;i=int(index);u=index-i
   curve=self.lifts[key];lift=curve[i]*(1-u)+curve[(i+1)%96]*u
@@ -95,15 +98,17 @@ class NaturalWalkClip:
 
 
  def prepare(self,target):
-  key=id(target)
+  key=target
   if key in self.baked:return
   count=256;frames=[];translations=[]
   for time in np.linspace(0,self.duration,count,endpoint=False):
    r,p,_=self.solve_pose(float(time),target,True);frames.append(r);translations.append(p)
   from joint_limits import limit_rotation,rotation_limits
   limits=rotation_limits(target.bones)
+  from motion_reference import reference_pose
+  reference_local,_=reference_pose(self.source,target)
   for frame in frames:
-   for node in set(frame)&set(limits):frame[node]=limit_rotation(target.local[node][:3,:3],frame[node],limits[node])
+   for node in set(frame)&set(limits):frame[node]=limit_rotation(reference_local[node][:3,:3],frame[node],limits[node])
   nodes=sorted(frames[0]);matrices=np.array([[frame[n] for n in nodes] for frame in frames])
   quaternions=np.empty((count,len(nodes),4))
   for i in range(count):
@@ -112,7 +117,7 @@ class NaturalWalkClip:
    signs=np.sum(quaternions[i-1]*quaternions[i],axis=1)<0;quaternions[i,signs]*=-1
   self.baked[key]=(nodes,quaternions,np.array(translations))
  def pose(self,t,target,loop=True):
-  self.prepare(target);nodes,qs,positions=self.baked[id(target)]
+  self.prepare(target);nodes,qs,positions=self.baked[target]
   u=(t/self.duration)%1 if loop else max(0.,min(1-1e-9,t/self.duration));index=u*len(qs);i=int(index);a=index-i;j=(i+1)%len(qs)
   q0=qs[i];q1=qs[j].copy();q1[np.sum(q0*q1,axis=1)<0]*=-1
   q=q0*(1-a)+q1*a;q/=np.linalg.norm(q,axis=1)[:,None]
@@ -122,7 +127,7 @@ class NaturalWalkClip:
   matrices[:,2,0]=2*(x*z-y*w);matrices[:,2,1]=2*(y*z+x*w);matrices[:,2,2]=1-2*(x*x+y*y)
   return dict(zip(nodes,matrices)),positions[i]*(1-a)+positions[j]*a,{}
  def travel_speed(self,target):
-  key=id(target)
+  key=target
   if key not in self.speeds:
    count=96;dt=self.duration/count;positions=[]
    for t in np.linspace(0,self.duration,count,endpoint=False):

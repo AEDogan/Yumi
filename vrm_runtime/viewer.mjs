@@ -10,7 +10,7 @@ scene.add(new THREE.HemisphereLight(0xffffff,0xa8aabd,2));
 const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(-2,4,5);scene.add(light);
 const camera=new THREE.PerspectiveCamera(30,1,.01,100);
 let vrm=null,generation=0,paused=false,last=performance.now(),framing=null;
-let sourceNodes=[],sourceMeshes=[],desktop=false,latestFrame=null;
+let sourceNodes=[],sourceMeshes=[],sourceParts=[],desktop=false,latestFrame=null;
 const desktopRoot=new THREE.Group();scene.add(desktopRoot);
 const propTemplates=new Map(),propInstances=new Map();
 let frameSerial=0;
@@ -108,10 +108,24 @@ window.yumiVRM={status,
       const gltf=await loader.loadAsync(url);
       const next=gltf.userData.vrm;if(!next)throw new Error('Dosyada desteklenen VRM uzantısı bulunamadı.');
       const nextNodes=await gltf.parser.getDependencies('node');
+      const nextParts=[];
+      for(let ni=0;ni<gltf.parser.json.nodes.length;ni++){
+        const spec=gltf.parser.json.nodes[ni];if(spec.mesh===undefined)continue;
+        const node=nextNodes[ni],meshes=node.isMesh?[node]:node.children.filter(n=>n.isMesh);
+        const primitives=gltf.parser.json.meshes[spec.mesh].primitives;
+        for(let pi=0;pi<primitives.length;pi++){
+          if((primitives[pi].mode??4)!==4)continue;
+          const mesh=meshes[pi];
+          nextParts.push(mesh?{mesh,original:mesh.geometry.attributes.position.array.slice()}:null);
+        }
+      }
       if(token!==generation){VRMUtils.deepDispose(next.scene);return;}
       if(vrm){vrm.scene.removeFromParent();VRMUtils.deepDispose(vrm.scene);}
-      vrm=next;VRMUtils.rotateVRM0(vrm);scene.add(vrm.scene);vrm.update(0);
-      sourceNodes=nextNodes;sourceMeshes=[];
+      vrm=next;VRMUtils.rotateVRM0(vrm);scene.add(vrm.scene);
+      for(const [name,value] of Object.entries(gltf.parser.json.extras?.yumi?.defaultExpressions??{}))
+        if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=1)vrm.expressionManager?.setValue(name,value);
+      vrm.update(0);
+      sourceNodes=nextNodes;sourceParts=nextParts;sourceMeshes=[];
       vrm.scene.traverse(node=>{const association=gltf.parser.associations.get(node);if(node.isMesh&&association?.meshes!==undefined)sourceMeshes.push([node,association.meshes]);});
       const bounds=new THREE.Box3().setFromObject(vrm.scene),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
       framing={size,center};fitCamera();
@@ -149,6 +163,18 @@ window.yumiVRM={status,
       const node=sourceNodes[index];if(!node)return;
       node.matrixAutoUpdate=false;node.matrix.fromArray(values);node.matrixWorldNeedsUpdate=true;
     });
+    for(const part of sourceParts)if(part?.changed){
+      part.mesh.geometry.attributes.position.array.set(part.original);
+      part.mesh.geometry.attributes.position.needsUpdate=true;part.changed=false;
+    }
+    for(const patch of frame.garments??[]){
+      const part=sourceParts[patch.part];if(!part)continue;
+      // Per-primitive copies avoid modifying shared glTF position buffers.
+      if(!part.cloned){part.mesh.geometry=part.mesh.geometry.clone();part.cloned=true;}
+      const position=part.mesh.geometry.attributes.position;
+      patch.ids.forEach((id,i)=>position.setXYZ(id,...patch.positions.slice(i*3,i*3+3)));
+      position.needsUpdate=true;part.changed=true;
+    }
     const weights=new Map(frame.expressions.map(([mesh,index,value])=>[mesh+':'+index,value]));
     for(const [node,mesh] of sourceMeshes)if(node.morphTargetInfluences)
       for(let i=0;i<node.morphTargetInfluences.length;i++)node.morphTargetInfluences[i]=weights.get(mesh+':'+i)??0;

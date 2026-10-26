@@ -14,6 +14,15 @@ def key_press(model,world,side,finger,height,weight):
     if abs(canonical[1]-height)>.075:return
     target=canonical.copy();target[1]=height
     target=d.flip.T@((canonical*(1-weight)+target*weight)/d.scale+d.origin)
+    return reach_tip(model,world,side,finger,target)
+
+def reach_tip(model,world,side,finger,target):
+    """CCD contact shared by keyboard and actual prop triangle surfaces."""
+    hands=model.hand_poses;chain=hands.chain(side,finger)
+    if side not in hands.hands or any(n is None for n in chain):return
+    d=model.data;last=chain[-1]
+    extension=np.linalg.solve(d.rest[last,:3,:3],(d.rest[last,:3,3]-d.rest[chain[-2],:3,3])*.7)
+    def tip():return world[last,:3,3]+world[last,:3,:3]@extension
     for _ in range(5):
         if np.linalg.norm(tip()-target)*d.scale<.0015:break
         for node in reversed(chain):

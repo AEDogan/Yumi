@@ -12,7 +12,25 @@ def legs(data,world,physics):
             axis=np.linalg.solve(data.rest[node,:3,:3],data.rest[end,:3,3]-data.rest[node,:3,3])
             local=np.linalg.solve(parent,world[node,:3,:3]);bounded=limit_forearm(data.local[node][:3,:3],local,axis,swing,twist)
             physics._rotate_subtree(world,node,parent@bounded@np.linalg.inv(world[node,:3,:3]))
-        foot=j[side+'Foot'];toes=j.get(side+'Toes')
+        # A knee is a hinge, not a ball joint. Bound its signed flexion in
+        # the authored femur frame; magnitude-only swing limits allow backwards
+        # knees and sideways bending even when the angle is below 145 degrees.
+        knee=j[side+'LowerLeg'];foot=j[side+'Foot']
+        parent=world[data.parents[knee],:3,:3]
+        rest=data.local[knee][:3,:3]
+        local=np.linalg.solve(parent,world[knee,:3,:3])
+        relative=np.linalg.solve(rest,local)
+        direction=np.linalg.solve(data.rest[knee,:3,:3],data.rest[foot,:3,3]-data.rest[knee,:3,3]);direction/=np.linalg.norm(direction)
+        hinge=np.linalg.solve(data.rest[knee,:3,:3],data.flip.T@np.array([1.,0.,0.]));hinge/=np.linalg.norm(hinge)
+        bent=relative@direction;bent/=max(np.linalg.norm(bent),1e-12)
+        flex=math.atan2(float(hinge@np.cross(direction,bent)),float(direction@bent))
+        bounded=rest@turn(hinge,float(np.clip(flex,0.,math.radians(145))))
+        physics._rotate_subtree(world,knee,parent@bounded@np.linalg.inv(world[knee,:3,:3]))
+        from joint_limits import limit_rotation
+        parent=world[data.parents[foot],:3,:3]
+        bounded=limit_rotation(data.local[foot][:3,:3],np.linalg.solve(parent,world[foot,:3,:3]),55.)
+        physics._rotate_subtree(world,foot,parent@bounded@np.linalg.inv(world[foot,:3,:3]))
+        toes=j.get(side+'Toes')
         if toes is None:continue
         hip=j['hips'];body=data.flip@world[hip,:3,:3]@np.linalg.inv(data.rest[hip,:3,:3])@data.flip.T@np.array([0.,0.,1.])
         neutral=data.rest[toes,:3,3]-data.rest[foot,:3,3]

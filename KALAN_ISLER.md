@@ -1,3 +1,5 @@
+> 26 Ekim güncel öncelik ve devir: `docs/DEVIR-2026-10-26.md`. Aşağıdaki tarihsel kayıtlar korunur; güncel durum için önce DURUM.md okunmalı.
+
 > Kısa başlangıç: [DURUM.md](DURUM.md). Bu dosya ayrıntılı başvuru/geçmiş kaydıdır; açılışta tamamını okuma. Yeni durum özetini DURUM.md içinde güncelle; ayrıntılı açık işler burada korunur.
 
 # Güncel kalan işler — 18 Ekim 2026

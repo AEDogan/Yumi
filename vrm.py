@@ -430,7 +430,10 @@ class VRMModel:
                         authored_weight=self.locomotion.weight**2*(3-2*self.locomotion.weight)
                     clip_rotations,clip_translation,clip_expression=authored.pose(START_PHASE+clock*PLAYBACK_RATE,d,True)
                 else:
-                    clip_rotations, clip_translation, clip_expression = authored.pose(elapsed, d, loop=not authored_name.startswith('VRMA_'))
+                    # The bundled wave starts with a bow. Enter at the raised
+                    # hand section, keeping the existing motion and entry blend.
+                    sample_time = elapsed + 2.6 if pose == 'wave' else elapsed
+                    clip_rotations, clip_translation, clip_expression = authored.pose(sample_time, d, loop=not authored_name.startswith('VRMA_'))
                     clip_translation[[0, 2]] = 0.0
                 mapping = {}
         if not authored:
@@ -443,6 +446,11 @@ class VRMModel:
             lower_body={j[name] for name in ('hips','leftUpperLeg','rightUpperLeg','leftLowerLeg','rightLowerLeg','leftFoot','rightFoot','leftToes','rightToes') if name in j}
             clip_rotations={node:value for node,value in clip_rotations.items() if node not in lower_body}
             clip_translation=np.zeros(3)
+            if pose=='wave':
+                # The bundled wave clip begins with a bow. This command is
+                # a standing wave: retain its arms/hands, keep the trunk upright.
+                trunk={j[n] for n in ('spine','chest','upperChest','neck','head') if n in j}
+                clip_rotations={node:value for node,value in clip_rotations.items() if node not in trunk}
         if authored_name and authored_name.startswith('Yumi-Gesture-'):
             gesture_bones={}
         hand_style=self.hand_gesture
@@ -484,6 +492,10 @@ class VRMModel:
                 sign=1 if rest_canonical[side+'UpperArm'][0]>=rest_canonical['hips'][0] else -1
                 lift=rotation([0.,0.,math.sin(sign*.055),math.cos(.055)])
                 mapping[node]=d.flip.T@lift@d.flip@d.rest[node,:3,:3]
+        reference_local=d.local
+        if authored:
+            from motion_reference import reference_pose
+            reference_local,_=reference_pose(getattr(authored,'source',authored),d)
         for i in d.order:
             parent = world[d.parents[i]] if i in d.parents else np.eye(4)
             local = d.local[i].copy()
@@ -539,11 +551,15 @@ class VRMModel:
                     from joint_limits import limit_forearm
                     axis=np.linalg.solve(d.rest[i][:3,:3],d.rest[j[side+'Hand'],:3,3]-d.rest[i,:3,3])
                     local[:3,:3]=limit_forearm(d.local[i][:3,:3],local[:3,:3],axis)
-                else:local[:3, :3] = limit_rotation(d.local[i][:3, :3], local[:3, :3], self.joint_limits[i])
+                else:local[:3, :3] = limit_rotation(reference_local[i][:3, :3], local[:3, :3], self.joint_limits[i])
             world[i] = parent @ local
         if hand_style:
             side='left' if self.conversation.variant%2==0 else 'right'
             self.hand_poses.apply(world,hand_style,side)
+        elif not speaking and pose == 'wave':
+            for side in ('left', 'right'):
+                style = 'open_palm' if side == 'right' else 'relaxed'
+                self.hand_poses.fingers(world, side, style, authored_weight)
         elif not speaking and pose!='clip':self.hand_poses.relax(world)
         elif performing and not getattr(self.clip,'pole',False):
             for side in ('left','right'):self.hand_poses.fingers(world,side,'relaxed')
@@ -605,13 +621,15 @@ class VRMModel:
         self.world = world
         palettes = [world[nodes] @ inverse for nodes, inverse in d.skins]
         self.palettes = palettes
-        expression = {}
+        from facial_defaults import default_weights
+        defaults = default_weights(d)
+        expression = dict(defaults)
         from model_analysis import expression_name
         blink = max(0, 1 - abs(t % 4.6 - 4.25) / 0.09)
         blink_names=['blink'] if expression_name(d,'blink') else ['blinkLeft','blinkRight']
         for name, amount in [(n,blink) for n in blink_names]+[('aa', self.mouth_level if speaking and (not getattr(self, 'conversation', None)) else 0), ('happy', 0.3 if pose == 'wave' else 0)]:
             for mesh, index, weight in d.expressions.get(expression_name(d,name), []):
-                expression[mesh, index] = amount * weight
+                expression[mesh, index] = min(1., defaults[(mesh,index)] + amount * weight) if (mesh,index) in defaults else amount * weight
         for name, amount in clip_expression.items():
             for mesh, index, weight in d.expressions.get(expression_name(d,name), []):
                 expression[mesh, index] = amount * weight

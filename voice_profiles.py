@@ -1,8 +1,8 @@
 """Persist each character's voice preferences without guessing VRM gender."""
 from app_paths import migrated_default_name
-VOICES=[(f'Gemini Live · {name} · {label}',f'gemini-live:{name}',gender) for name,gender,label in (
-    ('Kore','female','Kadın · net'),('Puck','male','Erkek · canlı'),
-    ('Charon','male','Erkek · sakin'),('Aoede','female','Kadın · yumuşak'),('Fenrir','male','Erkek · güçlü'))]
+VOICE_CATALOG=[('Kore', 'female', 'net'), ('Puck', 'male', 'canlı'), ('Charon', 'male', 'anlatıcı'), ('Aoede', 'female', 'havadar'), ('Fenrir', 'male', 'coşkulu'), ('Leda', 'female', 'genç tını'), ('Zephyr', 'female', 'parlak'), ('Orus', 'male', 'kararlı'), ('Callirrhoe', 'female', 'rahat'), ('Autonoe', 'female', 'parlak'), ('Enceladus', 'male', 'nefesli'), ('Iapetus', 'male', 'net'), ('Umbriel', 'male', 'rahat'), ('Algieba', 'male', 'akıcı'), ('Despina', 'female', 'akıcı'), ('Erinome', 'female', 'net'), ('Algenib', 'male', 'pürüzlü'), ('Rasalgethi', 'male', 'anlatıcı'), ('Laomedeia', 'female', 'neşeli'), ('Achernar', 'female', 'yumuşak'), ('Alnilam', 'male', 'kararlı'), ('Schedar', 'male', 'dengeli'), ('Gacrux', 'female', 'olgun'), ('Pulcherrima', 'female', 'dışa dönük'), ('Achird', 'male', 'samimi'), ('Zubenelgenubi', 'male', 'gündelik'), ('Vindemiatrix', 'female', 'nazik'), ('Sadachbia', 'male', 'hareketli'), ('Sadaltager', 'male', 'bilgili'), ('Sulafat', 'female', 'sıcak')]
+GEMINI_VOICE_NAMES=tuple(n for n,_,_ in VOICE_CATALOG)
+VOICES=[(f'Gemini Live · {n} · {"Kadın" if g=="female" else "Erkek"} · {label}',f'gemini-live:{n}',g) for n,g,label in VOICE_CATALOG]
 OPENAI_VOICES=['marin','cedar','coral','nova','shimmer','alloy','ash','ballad','echo','fable','onyx','sage','verse']
 def profile(settings,key=None):
  key=key or settings['skin'];saved=settings.get('voice_profiles',{}).get(key)
@@ -12,7 +12,8 @@ def profile(settings,key=None):
   result={**{'name':name,'gender':'female','speech_voice':'gemini-live:Kore','voice':'marin','adult':False},**saved}
   # Preserve the named voice in old profiles; the previous "any" catalog
   # allowed a contradictory gender filter to be saved alongside it.
-  result['name']=migrated_default_name(result.get('name')) if str(result.get('name') or '').strip() else name
+  result['name']=name
+  result['wake_alias']=''
   result.setdefault('size',settings.get('size',100) if key==settings['skin'] else 100)
   actual=next((g for _,v,g in VOICES if v==result['speech_voice']),None)
   if actual and result['gender']!='any':result['gender']=actual
@@ -40,8 +41,8 @@ def wake_command(text,name):
   part=normal(c);normalized+=part;positions.extend([i]*len(part))
  # Turkish recognizers spell foreign character names phonetically. Keep a small
  # exact-token alias list; broad fuzzy matching would wake on unrelated speech.
- aliases={'clara':('klara','cılara','ciılara'),'david':('davit','deyvid')}
- names=(normal(name),)+tuple(normal(v) for v in aliases.get(normal(name),()))
+ from wake_names import aliases
+ names=tuple(normal(v) for v in aliases(name))
  match=re.search(r'(?<!\w)(?:'+'|'.join(re.escape(v) for v in names)+r')(?!\w)',normalized)
  if not match:return False,''
  end=positions[match.end()-1]+1

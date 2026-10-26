@@ -13,7 +13,7 @@ class MusicRuntime:
         self.started_at=None;self.track_id=None;self.last_status=None;self.next_status=0.
         self.reported_error=None;self.last_beat=None;self.good_since=None;self.quiet_since=None
         self.auto_candidate=None;self.next_auto=0.;self.auto_suppressed=False;self.suppressed_track=None
-        self.suppressed_quiet=None;self.next_probe=0.
+        self.suppressed_quiet=None;self.next_probe=0.;self.voice_until=0.
     def start(self,mode='dance',origin='manual'):
         self.mode=mode;self.origin=origin;self.enabled=True;self.started_at=time.perf_counter()
         self.last_tick=self.started_at;self.clock=0.;self.resume_clock=0.;self.rate=1.
@@ -75,7 +75,9 @@ class MusicRuntime:
     def tick(self,now):
         o=self.owner;media=getattr(getattr(o,'media_activity',None),'state',{})
         hard_block=bool(not o.settings.get('model_visible',True) or getattr(o.overlay,'drag',None) is not None or getattr(getattr(o,'fullscreen_pause',None),'paused',False))
-        own_voice=bool(o.avatar.speaking or o.busy)
+        if o.avatar.speaking or o.busy:self.voice_until=now+1.2
+        own_voice=now<self.voice_until
+        if own_voice:self.auto_candidate=None
         if not self.enabled:self._auto(now,media,hard_block or own_voice);return
         elapsed=0. if self.last_tick is None else max(0.,min(1.,now-self.last_tick))
         dt=min(.2,elapsed);self.last_tick=now
@@ -84,6 +86,7 @@ class MusicRuntime:
             if elapsed>=4.:
                 resume=self.resume_after_exit;self._rest();self.enabled=resume
             return
+        if own_voice and not self.output.paused:self.output.reset_track()
         self.output.paused=hard_block or own_voice
         if hard_block:
             if self.active:self._apply()
@@ -106,7 +109,11 @@ class MusicRuntime:
         if state.get('error'):self._status('Ses analizi: '+state['error']+' · serbest dans kullanılabilir',now)
         music_known=(media.get('playing') and media.get('kind')=='music') or (now-state.get('genre_stamp',0)<18 and state.get('music_detected') is True)
         if self.origin=='auto':
-            confirmed=audible and music_known and not own_voice
+            # Browser media metadata also labels TTS players as music. Require
+            # positive audio evidence; metadata alone cannot start a dance.
+            confirmed=audible and now-state.get('genre_stamp',0)<5 and state.get('music_detected') is True and not own_voice and (beat_good or genre in QUIET)
+            if own_voice or (fresh and state.get('music_detected') is False):
+                if self.active:self._rest()
             if confirmed:
                 self.quiet_since=None
                 if self.good_since is None:self.good_since=now
@@ -154,3 +161,4 @@ class MusicRuntime:
         label={'manual':'elle seçim','media':'medya etiketi','audio':'sesten tahmin','unknown':'tür öğreniliyor'}[source]
         tempo=f"{round(self.last_beat[1])} BPM · ritme bağlı" if locked else 'serbest tempo · ritim bekleniyor'
         self._status(f"{'Direk dansı' if self.mode=='pole' else 'Dans'}: {genre if genre!='unknown' else 'genel'} · {tempo} · {label}",now)
+
